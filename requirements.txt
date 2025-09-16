@@ -7,3 +7,4 @@ scikit-learn
 joblib
 soundfile
 tqdm
+flask-cors
