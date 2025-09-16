@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import joblib
+import gdown
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
@@ -16,11 +17,24 @@ RF_MODEL_PATH = "cough_rf_model.pkl"
 RF_SCALER_PATH = "scaler_rf.pkl"
 UPLOAD_FOLDER = "uploads"
 
+# Google Drive direct download links
+RF_MODEL_DRIVE_URL = "https://drive.google.com/uc?id=1uPsVWj8SjyI71cixpMxQGaZ5F9LnMxH0"
+RF_SCALER_DRIVE_URL = "https://drive.google.com/uc?id=1BVfM7bgBw0XX4fn5Vh_gcitQ91IwRVFv"
+
 # --- Create Flask app ---
 app = Flask(__name__)
 CORS(app)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+# --- Download models if not exist ---
+if not os.path.exists(RF_MODEL_PATH):
+    print("📥 Downloading RF model from Google Drive...")
+    gdown.download(RF_MODEL_DRIVE_URL, RF_MODEL_PATH, quiet=False)
+
+if not os.path.exists(RF_SCALER_PATH):
+    print("📥 Downloading RF scaler from Google Drive...")
+    gdown.download(RF_SCALER_DRIVE_URL, RF_SCALER_PATH, quiet=False)
 
 # --- Load models ---
 try:
@@ -53,7 +67,7 @@ def predict():
         if features is None:
             return jsonify({"error": "ไม่สามารถสกัดฟีเจอร์จากไฟล์เสียงได้"}), 500
 
-        # Scale
+        # Scale features
         features_scaled = rf_scaler.transform(features.reshape(1, -1))
 
         # Predict
