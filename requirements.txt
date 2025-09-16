@@ -7,6 +7,3 @@ scikit-learn
 joblib
 soundfile
 tqdm
-git add requirements.txt
-git commit -m "Add tqdm to requirements"
-git push origin main
