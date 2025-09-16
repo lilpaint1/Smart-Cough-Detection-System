@@ -1,0 +1,15 @@
+/*
+ * CSS สำหรับแอปพลิเคชันวิเคราะห์การไอ
+ * ไฟล์นี้ถูกแยกออกมาจาก index.html เพื่อให้โค้ดเป็นระเบียบมากขึ้น
+ */
+@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap');
+body {
+    font-family: 'Sarabun', sans-serif;
+}
+.glow-effect {
+    box-shadow: 0 0 10px #22d3ee, 0 0 20px #22d3ee;
+    transition: box-shadow 0.3s ease-in-out;
+}
+.glow-effect:hover {
+    box-shadow: 0 0 15px #22d3ee, 0 0 30px #22d3ee;
+}

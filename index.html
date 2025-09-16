@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบวิเคราะห์การไอ</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio,line-clamp"></script>
+</head>
+<body class="bg-gray-900 text-gray-200 flex items-center justify-center min-h-screen p-4">
+
+    <!-- Main Container -->
+    <div id="main-container" class="bg-gray-800 rounded-3xl shadow-2xl p-8 max-w-4xl w-full">
+        <!-- Header -->
+        <div class="text-center mb-10">
+            <h1 class="text-3xl sm:text-4xl font-bold text-teal-400">ระบบวิเคราะห์การไอ</h1>
+            <p class="mt-2 text-md sm:text-lg text-gray-400">วิเคราะห์เสียงไอของคุณด้วยพลังของ AI</p>
+        </div>
+
+        <!-- Analysis Section -->
+        <div id="analysis-section" class="flex flex-col lg:flex-row gap-8">
+            <!-- Record and Predict Section -->
+            <div id="record-section" class="flex-1 bg-gray-700 p-6 rounded-2xl glow-effect text-center">
+                <div class="flex flex-col items-center">
+                    <svg class="w-20 h-20 text-teal-400 animate-pulse mb-4" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M7 10a2 2 0 11-4 0 2 2 0 014 0zM17 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                    <h2 class="text-xl font-semibold text-white mb-2">บันทึกเสียงไอ</h2>
+                    <p class="text-sm text-gray-400 mb-6">กดปุ่มแล้วไอใส่ไมโครโฟน<br>ประมาณ 5 วินาที</p>
+                    <button id="record-button" class="px-6 py-3 bg-teal-500 hover:bg-teal-600 text-white font-bold rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg">
+                        <span id="record-text">เริ่มบันทึก</span>
+                    </button>
+                    <div id="audio-waveform" class="mt-6 h-10 w-full bg-gray-600 rounded-lg overflow-hidden relative">
+                        <div id="audio-bar" class="h-full bg-teal-400 absolute w-0 transition-all ease-out duration-100"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Separator -->
+            <div class="relative flex items-center justify-center my-4 lg:my-0">
+                <div class="w-px h-full bg-gray-600 hidden lg:block"></div>
+                <div class="h-px w-full bg-gray-600 block lg:hidden"></div>
+                <span class="absolute px-3 bg-gray-800 text-gray-500 font-bold">หรือ</span>
+            </div>
+
+            <!-- Upload and Predict Section -->
+            <div id="upload-section" class="flex-1 bg-gray-700 p-6 rounded-2xl glow-effect text-center">
+                <div class="flex flex-col items-center">
+                    <svg class="w-20 h-20 text-orange-400 mb-4" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg>
+                    <h2 class="text-xl font-semibold text-white mb-2">อัปโหลดไฟล์เสียงไอ</h2>
+                    <p class="text-sm text-gray-400 mb-6">รองรับไฟล์เสียง .wav, .mp3<br>ความยาวไม่เกิน 10 วินาที</p>
+                    <label for="audio-upload" class="px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-full cursor-pointer transition-all duration-300 transform hover:scale-105 shadow-lg">
+                        เลือกไฟล์เสียง
+                    </label>
+                    <input type="file" id="audio-upload" accept="audio/*" class="hidden">
+                    <span id="file-name" class="mt-4 text-sm text-gray-400 italic"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Result Section -->
+        <div id="result-section" class="mt-8 bg-gray-700 p-6 rounded-2xl text-center hidden">
+            <h2 class="text-2xl font-bold mb-4 text-white">ผลการวิเคราะห์</h2>
+            <p id="status-message" class="text-sm text-gray-400 mb-4">กำลังประมวลผล...</p>
+            <div class="flex flex-col items-center">
+                <div class="mb-4 text-center">
+                    <p id="prediction-label" class="text-3xl font-extrabold text-teal-400"></p>
+                    <p id="confidence-score" class="text-lg font-semibold mt-2 text-gray-300"></p>
+                </div>
+                
+                <div class="w-full max-w-sm">
+                    <div id="probability-bar-container" class="flex flex-col gap-2 mt-4"></div>
+                </div>
+            </div>
+            
+            <button id="reset-button" class="mt-6 px-6 py-3 bg-red-500 hover:bg-red-600 text-white font-bold rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg">
+                เริ่มต้นใหม่
+            </button>
+        </div>
+    </div>
+
+    <!-- Message Box Modal -->
+    <div id="message-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center hidden">
+        <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700 max-w-xs w-full text-center">
+            <h3 id="modal-title" class="text-lg font-semibold text-white mb-2"></h3>
+            <p id="modal-message" class="text-sm text-gray-400 mb-4"></p>
+            <button id="modal-ok-button" class="px-4 py-2 bg-teal-500 hover:bg-teal-600 text-white rounded-lg">ตกลง</button>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
