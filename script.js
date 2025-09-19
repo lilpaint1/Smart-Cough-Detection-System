@@ -22,7 +22,7 @@ const modalTitle = document.getElementById('modal-title');
 const modalMessage = document.getElementById('modal-message');
 const modalOkButton = document.getElementById('modal-ok-button');
 
-const FLASK_URL = "https://smart-cough-detection-system-412378351230.europe-west1.run.app";
+const FLASK_URL = "https://smart-cough-detection-system-412378351230.asia-southeast1.run.app";
 
 
 let mediaRecorder;
@@ -277,4 +277,5 @@ resetButton.addEventListener('click', () => {
 
 // --- Close modal ---
 modalOkButton.addEventListener('click', () => messageModal.classList.add('hidden'));
+
 
