@@ -22,21 +22,20 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # --- Load models ---
-# Gunicorn will run this part when the container starts
 try:
+    print("✅ โหลดโมเดล RandomForest และ Scaler...")
     rf_model = joblib.load(RF_MODEL_PATH)
     rf_scaler = joblib.load(RF_SCALER_PATH)
-    print("✅ Load models and scalers successfully")
+    print("✅ โหลดโมเดลเรียบร้อยแล้ว")
 except Exception as e:
-    print(f"❌ Failed to load models or scalers: {e}")
-    # Raise an error to make the container fail and show in logs
+    print(f"❌ ไม่สามารถโหลดโมเดลหรือ Scaler ได้: {e}")
     raise e
 
 # --- Prediction Endpoint ---
 @app.route('/predict', methods=['POST'])
 def predict():
     if 'file' not in request.files:
-        return jsonify({"error": "No audio file found in the request"}), 400
+        return jsonify({"error": "ไม่พบไฟล์เสียงในคำขอ"}), 400
 
     audio_file = request.files['file']
     filename = secure_filename(audio_file.filename)
@@ -48,7 +47,7 @@ def predict():
 
         features = extract_features_rf(filepath)
         if features is None:
-            return jsonify({"error": "Failed to extract features from audio"}), 500
+            return jsonify({"error": "ไม่สามารถสกัดฟีเจอร์จากไฟล์เสียงได้"}), 500
 
         features_scaled = rf_scaler.transform(features.reshape(1, -1))
         proba = rf_model.predict_proba(features_scaled)[0]
@@ -66,7 +65,7 @@ def predict():
         }), 200
 
     except Exception as e:
-        print(f"❌ Error during prediction: {e}")
+        print(f"❌ Error: {e}")
         return jsonify({"error": str(e)}), 500
     finally:
         if os.path.exists(filepath):
