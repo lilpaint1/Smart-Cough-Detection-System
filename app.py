@@ -7,7 +7,6 @@ from werkzeug.utils import secure_filename
 import soundfile as sf
 import io
 
-# Import feature extraction function
 from rf_extract import extract_features_rf
 
 # --- Constants ---
@@ -22,41 +21,36 @@ CORS(app)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# --- Load models (models should be present after Docker build) ---
+# --- Load models ---
+# Gunicorn will run this part when the container starts
 try:
     rf_model = joblib.load(RF_MODEL_PATH)
     rf_scaler = joblib.load(RF_SCALER_PATH)
-    print("✅ โหลดโมเดล RandomForest และ Scaler เรียบร้อยแล้ว")
+    print("✅ Load models and scalers successfully")
 except Exception as e:
-    print(f"❌ ไม่สามารถโหลดโมเดลหรือ Scaler ได้: {e}")
+    print(f"❌ Failed to load models or scalers: {e}")
+    # Raise an error to make the container fail and show in logs
     raise e
 
 # --- Prediction Endpoint ---
 @app.route('/predict', methods=['POST'])
 def predict():
     if 'file' not in request.files:
-        return jsonify({"error": "ไม่พบไฟล์เสียงในคำขอ"}), 400
-    
+        return jsonify({"error": "No audio file found in the request"}), 400
+
     audio_file = request.files['file']
     filename = secure_filename(audio_file.filename)
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    
-    try:
-        # Read audio from request
-        audio_data, sr = sf.read(io.BytesIO(audio_file.read()))
 
-        # Save as WAV
+    try:
+        audio_data, sr = sf.read(io.BytesIO(audio_file.read()))
         sf.write(filepath, audio_data, sr, format='WAV')
 
-        # Extract features
         features = extract_features_rf(filepath)
         if features is None:
-            return jsonify({"error": "ไม่สามารถสกัดฟีเจอร์จากไฟล์เสียงได้"}), 500
+            return jsonify({"error": "Failed to extract features from audio"}), 500
 
-        # Scale features
         features_scaled = rf_scaler.transform(features.reshape(1, -1))
-
-        # Predict
         proba = rf_model.predict_proba(features_scaled)[0]
         pred_idx = int(np.argmax(proba))
         predicted_label = LABELS[pred_idx]
@@ -72,7 +66,7 @@ def predict():
         }), 200
 
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"❌ Error during prediction: {e}")
         return jsonify({"error": str(e)}), 500
     finally:
         if os.path.exists(filepath):
