@@ -31,6 +31,16 @@ except Exception as e:
     print(f"❌ ไม่สามารถโหลดโมเดลหรือ Scaler ได้: {e}")
     raise e
 
+# --- Health check / root endpoint (NEW) ---
+@app.route("/", methods=["GET"])
+def index():
+    return jsonify({
+        "message": "Smart Cough Detection API is running 🚀",
+        "endpoints": {
+            "predict": "/predict (POST)"
+        }
+    })
+
 # --- Prediction Endpoint ---
 @app.route('/predict', methods=['POST'])
 def predict():
@@ -79,6 +89,6 @@ def predict():
             os.remove(filepath)
 
 if __name__ == '__main__':
-    # Render ต้องใช้ PORT จาก env
+    # Render / Cloud Run ต้องใช้ PORT จาก env
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
