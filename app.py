@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import joblib
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 import soundfile as sf
@@ -23,7 +23,7 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # --- Load models ---
-try:    
+try:
     rf_model = joblib.load(RF_MODEL_PATH)
     rf_scaler = joblib.load(RF_SCALER_PATH)
     print("✅ โหลดโมเดล RandomForest และ Scaler เรียบร้อยแล้ว")
@@ -31,14 +31,27 @@ except Exception as e:
     print(f"❌ ไม่สามารถโหลดโมเดลหรือ Scaler ได้: {e}")
     raise e
 
-# --- Health check / root endpoint (NEW) ---
-@app.route("/", methods=["GET"])
+# --- Serve static files (frontend) ---
+@app.route("/")
 def index():
+    return send_from_directory(".", "index.html")
+
+@app.route("/style.css")
+def css():
+    return send_from_directory(".", "style.css")
+
+@app.route("/script.js")
+def js():
+    return send_from_directory(".", "script.js")
+
+# --- API health check ---
+@app.route("/status", methods=["GET"])
+def status():
     return jsonify({
-        "message": "Smart Cough Detection API is running 🚀",
         "endpoints": {
             "predict": "/predict (POST)"
-        }
+        },
+        "message": "Smart Cough Detection API is running 🚀"
     })
 
 # --- Prediction Endpoint ---
@@ -88,7 +101,7 @@ def predict():
         if os.path.exists(filepath):
             os.remove(filepath)
 
+# --- Run app ---
 if __name__ == '__main__':
-    # Render / Cloud Run ต้องใช้ PORT จาก env
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
