@@ -1,7 +1,6 @@
 import os
 import numpy as np
 import joblib
-import gdown
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
@@ -17,26 +16,13 @@ RF_MODEL_PATH = "cough_rf_model.pkl"
 RF_SCALER_PATH = "scaler_rf.pkl"
 UPLOAD_FOLDER = "uploads"
 
-# Google Drive direct download links
-RF_MODEL_DRIVE_URL = "https://drive.google.com/uc?id=1uPsVWj8SjyI71cixpMxQGaZ5F9LnMxH0"
-RF_SCALER_DRIVE_URL = "https://drive.google.com/uc?id=1BVfM7bgBw0XX4fn5Vh_gcitQ91IwRVFv"
-
 # --- Create Flask app ---
 app = Flask(__name__)
 CORS(app)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# --- Download models if not exist ---
-if not os.path.exists(RF_MODEL_PATH):
-    print("📥 Downloading RF model from Google Drive...")
-    gdown.download(RF_MODEL_DRIVE_URL, RF_MODEL_PATH, quiet=False)
-
-if not os.path.exists(RF_SCALER_PATH):
-    print("📥 Downloading RF scaler from Google Drive...")
-    gdown.download(RF_SCALER_DRIVE_URL, RF_SCALER_PATH, quiet=False)
-
-# --- Load models ---
+# --- Load models (models should be present after Docker build) ---
 try:
     rf_model = joblib.load(RF_MODEL_PATH)
     rf_scaler = joblib.load(RF_SCALER_PATH)
@@ -50,11 +36,11 @@ except Exception as e:
 def predict():
     if 'file' not in request.files:
         return jsonify({"error": "ไม่พบไฟล์เสียงในคำขอ"}), 400
-
+    
     audio_file = request.files['file']
     filename = secure_filename(audio_file.filename)
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-
+    
     try:
         # Read audio from request
         audio_data, sr = sf.read(io.BytesIO(audio_file.read()))
@@ -91,8 +77,3 @@ def predict():
     finally:
         if os.path.exists(filepath):
             os.remove(filepath)
-
-if __name__ == '__main__':
-    # Render ต้องใช้ PORT จาก env
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
