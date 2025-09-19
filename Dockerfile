@@ -12,7 +12,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # ติดตั้ง gdown ก่อนเพื่อใช้ดาวน์โหลดไฟล์
 RUN pip install gdown && \
     gdown --id 1uPsVWj8SjyI71cixpMxQGaZ5F9LnMxH0 -O /app/cough_rf_model.pkl && \
-    gdown --id 1BVfM7bgBw0XX4fn5Vh_gcitQ91IwRVFv -O /app/scaler_rf.pkl
+    gdown --id 1BeBGtMNiorzLkiFDaxt2bysji5QNVwT8 -O /app/scaler_rf.pkl
 
 # คัดลอกเฉพาะไฟล์โค้ดที่จำเป็น
 COPY app.py ./
@@ -24,3 +24,4 @@ COPY style.css ./
 
 # ตั้งค่าให้ Gunicorn รัน Flask app ที่ชื่อ app.py
 CMD ["gunicorn", "--bind", "0.0.0.0:8080", "app:app"]
+
