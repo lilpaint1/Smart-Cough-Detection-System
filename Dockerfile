@@ -12,7 +12,8 @@ COPY cnn_extract.py ./
 COPY index.html ./
 COPY script.js ./
 COPY style.css ./
-
+COPY cough_rf_model.pkl ./
+COPY scaler_rf.pkl ./
 # ติดตั้ง Library ต่างๆ จาก requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
