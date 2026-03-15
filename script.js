@@ -22,7 +22,7 @@ const modalTitle = document.getElementById('modal-title');
 const modalMessage = document.getElementById('modal-message');
 const modalOkButton = document.getElementById('modal-ok-button');
 
-const FLASK_URL = "https://smart-cough-detection-system-412378351230.asia-southeast1.run.app/predict";
+const FLASK_URL = "https://coughai-985046969554.asia-southeast3.run.app/predict";
 
 
 let mediaRecorder;
