@@ -18,9 +18,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # ดาวน์โหลดไฟล์โมเดลขนาดใหญ่จาก Google Drive โดยใช้ gdown
 # ***สำคัญ*** gdown จะต้องถูกติดตั้งแล้วในขั้นตอนก่อนหน้า
 RUN pip install gdown && \
-    gdown --id 1uPsVWj8SjyI71cixpMxQGaZ5F9LnMxH0 -O /app/cough_rf_model.pkl && \
-    gdown --id 1BeBGtMNiorzLkiFDaxt2bysji5QNVwT8 -O /app/scaler_rf.pkl
-
+    gdown --fuzzy "https://drive.google.com/file/d/1uPsVWj8SjyI71cixpMxQGaZ5F9LnMxH0/view" -O /app/cough_rf_model.pkl && \
+    gdown --fuzzy "https://drive.google.com/file/d/1BeBGtMNiorzLkiFDaxt2bysji5QNVwT8/view" -O /app/scaler_rf.pkl
 # คำสั่งสำหรับรันแอปพลิเคชันโดยใช้ Gunicorn
 # Gunicorn จะเป็นตัวกลางที่ทำให้เว็บเซิร์ฟเวอร์ Flask ของคุณทำงานได้บน Cloud
 # Cloud Run จะส่ง Traffic ไปที่พอร์ต 8080 เป็นค่าเริ่มต้น
