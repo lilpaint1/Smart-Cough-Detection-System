@@ -1,102 +1,104 @@
 // ============================================================
-// CoughAI — script.js (Premium UI Rebuild)
-// Backend API, audio logic, and data flow are 100% unchanged.
-// Only UI interactions, states, and animations have been updated.
+// CoughAI — script.js
+// Backend / audio logic: 100% unchanged
+// UI layer: updated to match new Apple Health design
 // ============================================================
 
-// --- Constants (unchanged) ---
-const LABELS = ['covid', 'healthy', 'symptomatic'];
+const LABELS      = ['covid', 'healthy', 'symptomatic'];
 const SAMPLE_RATE = 44100;
-const DURATION = 5;
+const DURATION    = 5;
+const FLASK_URL   = "https://coughai-985046969554.asia-southeast3.run.app/predict";
 
-// --- DOM Elements ---
-const recordButton         = document.getElementById('record-button');
-const recordText           = document.getElementById('record-text');
-const uploadInput          = document.getElementById('audio-upload');
-const fileNameSpan         = document.getElementById('file-name');
-const recordSection        = document.getElementById('record-section');
-const uploadSection        = document.getElementById('upload-section');
-const resultSection        = document.getElementById('result-section');
-const resultLoading        = document.getElementById('result-loading');
-const resultCard           = document.getElementById('result-card');
-const predictionLabel      = document.getElementById('prediction-label');
-const confidenceScore      = document.getElementById('confidence-score');
-const statusMessage        = document.getElementById('status-message');
-const probabilityBarContainer = document.getElementById('probability-bar-container');
-const resetButton          = document.getElementById('reset-button');
-const audioBar             = document.getElementById('audio-bar');
-const waveformLabel        = document.getElementById('waveform-label');
-const messageModal         = document.getElementById('message-modal');
-const modalTitle           = document.getElementById('modal-title');
-const modalMessage         = document.getElementById('modal-message');
-const modalOkButton        = document.getElementById('modal-ok-button');
-const resultBadge          = document.getElementById('result-badge');
-const badgeIcon            = document.getElementById('badge-icon');
-const dropZone             = document.getElementById('drop-zone');
+// ── DOM refs ──────────────────────────────────────────────
+const recordButton    = document.getElementById('record-button');
+const recordText      = document.getElementById('record-text');
+const uploadInput     = document.getElementById('audio-upload');
+const fileNameSpan    = document.getElementById('file-name');
+const recordSection   = document.getElementById('record-section');
+const uploadSection   = document.getElementById('upload-section');
+const inputSection    = document.getElementById('input-section');
+const resultSection   = document.getElementById('result-section');
+const resultLoading   = document.getElementById('result-loading');
+const resultCard      = document.getElementById('result-card');
+const predictionLabel = document.getElementById('prediction-label');
+const confidenceScore = document.getElementById('confidence-score');
+const statusMessage   = document.getElementById('status-message');
+const probContainer   = document.getElementById('probability-bar-container');
+const resetButton     = document.getElementById('reset-button');
+const audioBar        = document.getElementById('audio-bar');
+const waveformLabel   = document.getElementById('waveform-label');
+const messageModal    = document.getElementById('message-modal');
+const modalTitle      = document.getElementById('modal-title');
+const modalMessage    = document.getElementById('modal-message');
+const modalOkButton   = document.getElementById('modal-ok-button');
+const resultBadge     = document.getElementById('result-badge');
+const badgeIcon       = document.getElementById('badge-icon');
+const dropZone        = document.getElementById('drop-zone');
 
-// --- API URL (unchanged) ---
-const FLASK_URL = "https://coughai-985046969554.asia-southeast3.run.app/predict";
+let mediaRecorder, audioChunks = [], audioContext, analyserNode, animationFrameId;
 
-let mediaRecorder;
-let audioChunks = [];
-let audioContext;
-let analyserNode;
-let animationFrameId;
+// ── Splash → App transition ───────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+    // Set date in header
+    const d = new Date();
+    const el = document.getElementById('app-date');
+    if (el) el.textContent = d.toLocaleDateString('th-TH', { weekday:'long', day:'numeric', month:'long' });
 
-// ─── Modal helper ────────────────────────────────────────────
+    // After 2.2s: hide splash, reveal app
+    setTimeout(() => {
+        const splash = document.getElementById('splash');
+        const app    = document.getElementById('app');
+        splash.classList.add('splash-out');
+        setTimeout(() => {
+            splash.style.display = 'none';
+            app.classList.add('app-visible');
+        }, 500);
+    }, 2200);
+});
+
+// ── Modal ─────────────────────────────────────────────────
 function showModal(title, message) {
     modalTitle.textContent   = title;
     modalMessage.textContent = message;
-    messageModal.classList.remove('hidden');
+    messageModal.style.display = 'flex';
 }
+modalOkButton.addEventListener('click', () => messageModal.style.display = 'none');
 
-// ─── Record button ───────────────────────────────────────────
+// ── Record ────────────────────────────────────────────────
 recordButton.addEventListener('click', async () => {
-    if (mediaRecorder && mediaRecorder.state === 'recording') {
-        stopRecording();
-    } else {
-        startRecording();
-    }
+    if (mediaRecorder && mediaRecorder.state === 'recording') stopRecording();
+    else startRecording();
 });
 
 async function startRecording() {
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-        audioChunks = [];
+        mediaRecorder  = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+        audioChunks    = [];
 
-        // Waveform visualization
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
         const source = audioContext.createMediaStreamSource(stream);
         analyserNode = audioContext.createAnalyser();
         analyserNode.fftSize = 256;
         source.connect(analyserNode);
 
-        mediaRecorder.ondataavailable = event => audioChunks.push(event.data);
-
+        mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
         mediaRecorder.onstop = async () => {
             cancelAnimationFrame(animationFrameId);
-            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-            const wavBlob   = await convertToWav(audioBlob);
+            const blob    = new Blob(audioChunks, { type: 'audio/webm' });
+            const wavBlob = await convertToWav(blob);
             processAudio(wavBlob);
-            stream.getTracks().forEach(track => track.stop());
+            stream.getTracks().forEach(t => t.stop());
         };
 
         mediaRecorder.start();
-
-        // ── UI: recording state ──
         recordText.textContent = 'กำลังบันทึก...';
         recordButton.classList.add('recording');
         if (waveformLabel) waveformLabel.textContent = 'กำลังรับเสียง...';
         uploadInput.disabled = true;
-
         visualizeAudio();
 
-        // Auto-stop after DURATION seconds
-        setTimeout(() => {
-            if (mediaRecorder.state === 'recording') mediaRecorder.stop();
-        }, DURATION * 1000);
-
+        setTimeout(() => { if (mediaRecorder.state === 'recording') mediaRecorder.stop(); }, DURATION * 1000);
     } catch (err) {
         showModal('ข้อผิดพลาด', `ไม่สามารถเข้าถึงไมโครโฟนได้: ${err.message}`);
     }
@@ -104,267 +106,169 @@ async function startRecording() {
 
 function stopRecording() {
     if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
-
-    // ── UI: idle state ──
     recordText.textContent = 'เริ่มบันทึก';
     recordButton.classList.remove('recording');
-    if (waveformLabel) waveformLabel.textContent = 'รอสัญญาณเสียง...';
+    if (waveformLabel) waveformLabel.textContent = 'รอสัญญาณเสียง';
     audioBar.style.width = '0%';
     uploadInput.disabled = false;
 }
 
 function visualizeAudio() {
-    const dataArray = new Uint8Array(analyserNode.frequencyBinCount);
-    const update = () => {
-        analyserNode.getByteFrequencyData(dataArray);
-        const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
-        audioBar.style.width = `${(avg / 255) * 100}%`;
-        animationFrameId = requestAnimationFrame(update);
+    const data = new Uint8Array(analyserNode.frequencyBinCount);
+    const tick = () => {
+        analyserNode.getByteFrequencyData(data);
+        const avg = data.reduce((a,b)=>a+b,0) / data.length;
+        audioBar.style.width = `${(avg/255)*100}%`;
+        animationFrameId = requestAnimationFrame(tick);
     };
-    update();
+    tick();
 }
 
-// ─── File Upload ─────────────────────────────────────────────
-uploadInput.addEventListener('change', (event) => {
-    const file = event.target.files[0];
-    if (file) {
-        fileNameSpan.textContent = file.name;
-        convertFileToWav(file).then(wavBlob => processAudio(wavBlob));
-    }
+// ── Upload ────────────────────────────────────────────────
+uploadInput.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    fileNameSpan.textContent = file.name;
+    convertFileToWav(file).then(wav => processAudio(wav));
 });
 
-// Drag-and-drop enhancement
 if (dropZone) {
-    dropZone.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        dropZone.classList.add('drag-over');
-    });
-
-    dropZone.addEventListener('dragleave', () => {
-        dropZone.classList.remove('drag-over');
-    });
-
-    dropZone.addEventListener('drop', (e) => {
+    dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+    dropZone.addEventListener('dragleave', ()  => dropZone.classList.remove('drag-over'));
+    dropZone.addEventListener('drop', e => {
         e.preventDefault();
         dropZone.classList.remove('drag-over');
         const file = e.dataTransfer.files[0];
-        if (file && file.type.startsWith('audio/')) {
+        if (file?.type.startsWith('audio/')) {
             fileNameSpan.textContent = file.name;
-            convertFileToWav(file).then(wavBlob => processAudio(wavBlob));
+            convertFileToWav(file).then(wav => processAudio(wav));
         } else {
-            showModal('ไฟล์ไม่ถูกต้อง', 'กรุณาเลือกไฟล์เสียงเท่านั้น (.wav, .mp3, .webm)');
+            showModal('ไฟล์ไม่ถูกต้อง', 'กรุณาเลือกไฟล์เสียงเท่านั้น');
         }
     });
 }
 
-// ─── Audio Conversion (unchanged logic) ──────────────────────
+// ── Audio conversion (unchanged) ─────────────────────────
 async function convertToWav(blob) {
-    const arrayBuffer = await blob.arrayBuffer();
-    const audioCtx    = new (window.AudioContext || window.webkitAudioContext)();
-    const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-    const wavBuffer   = audioBufferToWav(audioBuffer, 1, SAMPLE_RATE);
-    return new Blob([wavBuffer], { type: 'audio/wav' });
+    const ab  = await blob.arrayBuffer();
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const buf = await ctx.decodeAudioData(ab);
+    return new Blob([audioBufferToWav(buf, 1, SAMPLE_RATE)], { type: 'audio/wav' });
 }
-
 async function convertFileToWav(file) {
-    if (file.type === 'audio/wav') return file;
-    return convertToWav(file);
+    return file.type === 'audio/wav' ? file : convertToWav(file);
 }
-
 function audioBufferToWav(buffer, numChannels, sampleRate) {
-    const channels = [];
-    for (let i = 0; i < numChannels; i++) {
-        channels.push(buffer.getChannelData(i % buffer.numberOfChannels));
-    }
-    const interleaved   = interleave(channels);
-    const bufferLength  = 44 + interleaved.length * 2;
-    const wav  = new ArrayBuffer(bufferLength);
-    const view = new DataView(wav);
-
-    writeString(view, 0, 'RIFF');
-    view.setUint32(4, 36 + interleaved.length * 2, true);
-    writeString(view, 8, 'WAVE');
-    writeString(view, 12, 'fmt ');
-    view.setUint32(16, 16, true);
-    view.setUint16(20, 1, true);
-    view.setUint16(22, numChannels, true);
-    view.setUint32(24, sampleRate, true);
-    view.setUint32(28, sampleRate * numChannels * 2, true);
-    view.setUint16(32, numChannels * 2, true);
-    view.setUint16(34, 16, true);
-    writeString(view, 36, 'data');
-    view.setUint32(40, interleaved.length * 2, true);
-
-    let offset = 44;
-    for (let i = 0; i < interleaved.length; i++, offset += 2) {
-        const s = Math.max(-1, Math.min(1, interleaved[i]));
-        view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
-    }
+    const ch  = [];
+    for (let i=0;i<numChannels;i++) ch.push(buffer.getChannelData(i % buffer.numberOfChannels));
+    const il  = interleave(ch);
+    const wav = new ArrayBuffer(44 + il.length*2);
+    const v   = new DataView(wav);
+    writeString(v,0,'RIFF'); v.setUint32(4,36+il.length*2,true); writeString(v,8,'WAVE');
+    writeString(v,12,'fmt '); v.setUint32(16,16,true); v.setUint16(20,1,true);
+    v.setUint16(22,numChannels,true); v.setUint32(24,sampleRate,true);
+    v.setUint32(28,sampleRate*numChannels*2,true); v.setUint16(32,numChannels*2,true);
+    v.setUint16(34,16,true); writeString(v,36,'data'); v.setUint32(40,il.length*2,true);
+    let o=44;
+    for (let i=0;i<il.length;i++,o+=2){const s=Math.max(-1,Math.min(1,il[i]));v.setInt16(o,s<0?s*0x8000:s*0x7FFF,true);}
     return wav;
 }
-
-function interleave(channels) {
-    const length = channels[0].length;
-    const result = new Float32Array(length * channels.length);
-    for (let i = 0; i < length; i++) {
-        for (let j = 0; j < channels.length; j++) {
-            result[i * channels.length + j] = channels[j][i];
-        }
-    }
-    return result;
+function interleave(ch) {
+    const r=new Float32Array(ch[0].length*ch.length);
+    for (let i=0;i<ch[0].length;i++) for(let j=0;j<ch.length;j++) r[i*ch.length+j]=ch[j][i];
+    return r;
 }
+function writeString(v,o,s){for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i));}
 
-function writeString(view, offset, string) {
-    for (let i = 0; i < string.length; i++) {
-        view.setUint8(offset + i, string.charCodeAt(i));
-    }
-}
-
-// ─── Send to Flask (unchanged logic) ─────────────────────────
+// ── Process → API (unchanged) ────────────────────────────
 async function processAudio(audioBlob) {
-    // Show result section with loading state
-    recordSection.classList.add('hidden');
-    uploadSection.classList.add('hidden');
-
-    const divider = document.querySelector('.divider-or');
-    if (divider) divider.classList.add('hidden');
-
-    resultSection.classList.remove('hidden');
-    resultLoading.classList.remove('hidden');
-    resultCard.classList.add('hidden');
-
-    statusMessage.textContent = '🤖 กำลังประมวลผลเสียงและทำนาย...';
+    // Switch to result view
+    inputSection.style.display = 'none';
+    resultSection.style.display = 'block';
+    resultLoading.style.display = 'flex';
+    resultCard.style.display    = 'none';
+    statusMessage.textContent   = 'กำลังวิเคราะห์เสียง...';
 
     try {
-        const formData = new FormData();
-        formData.append('file', audioBlob, 'cough.wav');
-
-        const response = await fetch(FLASK_URL, {
-            method: 'POST',
-            body: formData
-        });
-
-        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-
-        const result = await response.json();
-        if (result.error) throw new Error(result.error);
-
-        // Small delay so loading animation is perceptible
-        await new Promise(r => setTimeout(r, 400));
-        displayResult(result);
-
-    } catch (error) {
-        console.error('Prediction Error:', error);
-        displayError(error.message);
+        const fd = new FormData();
+        fd.append('file', audioBlob, 'cough.wav');
+        const res = await fetch(FLASK_URL, { method:'POST', body:fd });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+        await new Promise(r => setTimeout(r, 350)); // let spinner breathe
+        displayResult(data);
+    } catch (err) {
+        console.error(err);
+        displayError();
     }
 }
 
-// ─── Display Result ───────────────────────────────────────────
+// ── Display result ────────────────────────────────────────
 function displayResult(data) {
-    resultLoading.classList.add('hidden');
-    resultCard.classList.remove('hidden');
+    resultLoading.style.display = 'none';
+    resultCard.style.display    = 'flex';
 
-    const classifiedLabel = data.classification.toLowerCase();
-    const probabilities   = data.probabilities;
-    const highestScore    = probabilities.reduce((max, p) => Math.max(max, p.score), 0);
+    const cls   = data.classification.toLowerCase();
+    const probs = data.probabilities;
+    const top   = probs.reduce((m,p) => Math.max(m, p.score), 0);
 
-    // Label text + color class
-    const labelMap = {
-        healthy:     { text: 'Healthy',     cls: 'label-healthy',     badge: 'badge-healthy'     },
-        covid:       { text: 'COVID-19',    cls: 'label-covid',       badge: 'badge-covid'       },
-        symptomatic: { text: 'Symptomatic', cls: 'label-symptomatic', badge: 'badge-symptomatic' },
+    // Label + colors
+    const map = {
+        healthy:     { text:'Healthy',     color:'var(--teal)',   bg:'var(--teal-dim)',   icon:'<polyline points="20 6 9 17 4 12"/>' },
+        covid:       { text:'COVID-19',    color:'var(--red)',    bg:'var(--red-dim)',    icon:'<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>' },
+        symptomatic: { text:'Symptomatic', color:'var(--yellow)', bg:'var(--yellow-dim)', icon:'<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>' },
     };
-    const match = labelMap[classifiedLabel] || { text: classifiedLabel.toUpperCase(), cls: '', badge: '' };
+    const m = map[cls] || { text: cls.toUpperCase(), color:'var(--text2)', bg:'rgba(255,255,255,0.08)', icon:'<circle cx="12" cy="12" r="10"/>' };
 
-    predictionLabel.textContent = match.text;
-    predictionLabel.className   = `result-label ${match.cls}`;
+    predictionLabel.textContent  = m.text;
+    predictionLabel.style.color  = m.color;
+    resultBadge.style.background = m.bg;
+    badgeIcon.innerHTML          = m.icon;
+    badgeIcon.style.stroke       = m.color;
+    confidenceScore.textContent  = `ความมั่นใจ ${(top*100).toFixed(1)}%`;
 
-    confidenceScore.textContent = `ความมั่นใจ ${(highestScore * 100).toFixed(1)}%`;
-
-    // Badge icon — use ✓ for healthy, ✕ for others
-    const isHealthy = classifiedLabel === 'healthy';
-    resultBadge.className = `result-badge ${match.badge}`;
-    badgeIcon.innerHTML   = isHealthy
-        ? '<polyline points="20 6 9 17 4 12"/>'
-        : classifiedLabel === 'covid'
-            ? '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>'
-            : '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>';
-
-    // Probability bars
-    probabilityBarContainer.innerHTML = '';
-
-    const colorMap = {
-        healthy:     'healthy',
-        covid:       'covid',
-        symptomatic: 'symptomatic',
-    };
-
-    probabilities.forEach(prob => {
-        const row = document.createElement('div');
-        row.className = 'prob-row';
-
-        const label = document.createElement('span');
-        label.className   = 'prob-label';
-        label.textContent = prob.label;
-
-        const track = document.createElement('div');
-        track.className = 'prob-track';
-
+    // Prob bars
+    probContainer.innerHTML = '';
+    const colorMap = { healthy:'healthy', covid:'covid', symptomatic:'symptomatic' };
+    probs.forEach(p => {
+        const row  = document.createElement('div'); row.className = 'prob-row';
+        const name = document.createElement('span'); name.className = 'prob-name'; name.textContent = p.label;
+        const trk  = document.createElement('div'); trk.className = 'prob-track';
         const fill = document.createElement('div');
-        const colorCls = colorMap[prob.label.toLowerCase()] || 'default';
-        fill.className = `prob-fill ${colorCls}`;
+        const cls2 = colorMap[p.label.toLowerCase()] || 'default';
+        fill.className = `prob-fill ${cls2}`;
         fill.style.width = '0%';
-        track.appendChild(fill);
-
-        const score = document.createElement('span');
-        score.className   = 'prob-score';
-        score.textContent = `${(prob.score * 100).toFixed(1)}%`;
-
-        row.appendChild(label);
-        row.appendChild(track);
-        row.appendChild(score);
-        probabilityBarContainer.appendChild(row);
-
-        // Animate bar after paint
-        requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-                fill.style.width = `${prob.score * 100}%`;
-            });
-        });
+        trk.appendChild(fill);
+        const pct = document.createElement('span'); pct.className = 'prob-pct'; pct.textContent = `${(p.score*100).toFixed(1)}%`;
+        row.append(name, trk, pct);
+        probContainer.appendChild(row);
+        requestAnimationFrame(() => requestAnimationFrame(() => { fill.style.width = `${p.score*100}%`; }));
     });
 }
 
-// ─── Display Error ────────────────────────────────────────────
-function displayError(errorMsg) {
-    resultLoading.classList.add('hidden');
-    resultCard.classList.remove('hidden');
-
-    predictionLabel.textContent = 'วิเคราะห์ไม่สำเร็จ';
-    predictionLabel.className   = 'result-label label-error';
-    confidenceScore.textContent = '';
-    probabilityBarContainer.innerHTML = '';
-    resultBadge.className = 'result-badge badge-error';
-    badgeIcon.innerHTML   = '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>';
+function displayError() {
+    resultLoading.style.display = 'none';
+    resultCard.style.display    = 'flex';
+    predictionLabel.textContent  = 'วิเคราะห์ไม่สำเร็จ';
+    predictionLabel.style.color  = 'var(--text2)';
+    resultBadge.style.background = 'rgba(255,255,255,0.06)';
+    badgeIcon.innerHTML          = '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>';
+    badgeIcon.style.stroke       = 'var(--text2)';
+    confidenceScore.textContent  = 'กรุณาลองใหม่อีกครั้ง';
+    probContainer.innerHTML      = '';
 }
 
-// ─── Reset ────────────────────────────────────────────────────
+// ── Reset ─────────────────────────────────────────────────
 resetButton.addEventListener('click', () => {
-    resultSection.classList.add('hidden');
-    resultCard.classList.add('hidden');
-    resultLoading.classList.add('hidden');
-
-    recordSection.classList.remove('hidden');
-    uploadSection.classList.remove('hidden');
-
-    const divider = document.querySelector('.divider-or');
-    if (divider) divider.classList.remove('hidden');
-
-    fileNameSpan.textContent = '';
-    audioBar.style.width     = '0%';
-    if (waveformLabel) waveformLabel.textContent = 'รอสัญญาณเสียง...';
-    uploadInput.value         = '';
-    recordButton.disabled     = false;
+    resultSection.style.display = 'none';
+    inputSection.style.display  = '';
+    resultCard.style.display    = 'none';
+    fileNameSpan.textContent    = '';
+    audioBar.style.width        = '0%';
+    if (waveformLabel) waveformLabel.textContent = 'รอสัญญาณเสียง';
+    uploadInput.value           = '';
+    recordButton.disabled       = false;
+    recordButton.classList.remove('recording');
+    recordText.textContent      = 'เริ่มบันทึก';
 });
-
-// ─── Close Modal ──────────────────────────────────────────────
-modalOkButton.addEventListener('click', () => messageModal.classList.add('hidden'));
