@@ -3,89 +3,179 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบวิเคราะห์การไอ</title>
+    <title>CoughAI — ระบบวิเคราะห์การไอ</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=Sarabun:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio,line-clamp"></script>
 </head>
-<body class="bg-gray-900 text-gray-200 flex items-center justify-center min-h-screen p-4">
+<body>
 
-    <!-- Main Container -->
-    <div id="main-container" class="bg-gray-800 rounded-3xl shadow-2xl p-8 max-w-4xl w-full">
+    <!-- Ambient background orbs -->
+    <div class="bg-orb orb-1"></div>
+    <div class="bg-orb orb-2"></div>
+    <div class="bg-orb orb-3"></div>
+
+    <!-- App Shell -->
+    <div class="app-shell">
+
         <!-- Header -->
-        <div class="text-center mb-10">
-            <h1 class="text-3xl sm:text-4xl font-bold text-teal-400">ระบบวิเคราะห์การไอ</h1>
-            <p class="mt-2 text-md sm:text-lg text-gray-400">วิเคราะห์เสียงไอของคุณด้วยพลังของ AI</p>
-        </div>
+        <header class="app-header">
+            <div class="logo-mark">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                    <path d="M10 2C10 2 6 5 6 9.5C6 12.5 7.5 14.5 10 15.5C12.5 14.5 14 12.5 14 9.5C14 5 10 2 10 2Z" fill="currentColor" opacity="0.9"/>
+                    <path d="M10 15.5V18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+            </div>
+            <span class="logo-text">CoughAI</span>
+        </header>
 
-        <!-- Analysis Section -->
-        <div id="analysis-section" class="flex flex-col lg:flex-row gap-8">
-            <!-- Record and Predict Section -->
-            <div id="record-section" class="flex-1 bg-gray-700 p-6 rounded-2xl glow-effect text-center">
-                <div class="flex flex-col items-center">
-                    <svg class="w-20 h-20 text-teal-400 animate-pulse mb-4" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M7 10a2 2 0 11-4 0 2 2 0 014 0zM17 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                    <h2 class="text-xl font-semibold text-white mb-2">บันทึกเสียงไอ</h2>
-                    <p class="text-sm text-gray-400 mb-6">กดปุ่มแล้วไอใส่ไมโครโฟน<br>ประมาณ 5 วินาที</p>
-                    <button id="record-button" class="px-6 py-3 bg-teal-500 hover:bg-teal-600 text-white font-bold rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg">
-                        <span id="record-text">เริ่มบันทึก</span>
-                    </button>
-                    <div id="audio-waveform" class="mt-6 h-10 w-full bg-gray-600 rounded-lg overflow-hidden relative">
-                        <div id="audio-bar" class="h-full bg-teal-400 absolute w-0 transition-all ease-out duration-100"></div>
+        <!-- Main Content -->
+        <main class="main-content">
+
+            <!-- Hero -->
+            <section class="hero" id="hero-section">
+                <p class="hero-eyebrow">AI-Powered Diagnostics</p>
+                <h1 class="hero-title">วิเคราะห์เสียงไอ<br><em>ด้วยปัญญาประดิษฐ์</em></h1>
+                <p class="hero-subtitle">บันทึกหรืออัปโหลดเสียงไอของคุณ แล้วรับผลวิเคราะห์ในไม่กี่วินาที</p>
+            </section>
+
+            <!-- Input Cards -->
+            <section class="input-section" id="input-section">
+
+                <!-- Record Card -->
+                <div class="input-card" id="record-section">
+                    <div class="card-inner">
+                        <div class="card-icon-wrap record-icon-wrap">
+                            <div class="mic-pulse-ring"></div>
+                            <div class="mic-pulse-ring ring-2"></div>
+                            <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/>
+                                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                                <line x1="12" y1="19" x2="12" y2="22"/>
+                                <line x1="8" y1="22" x2="16" y2="22"/>
+                            </svg>
+                        </div>
+                        <h2 class="card-title">บันทึกเสียงสด</h2>
+                        <p class="card-desc">กดปุ่ม แล้วไอลงไมโครโฟน<br>ประมาณ 5 วินาที</p>
+
+                        <!-- Waveform visualizer -->
+                        <div class="waveform-container" id="waveform-container">
+                            <div class="waveform-bar" id="audio-bar"></div>
+                            <div class="waveform-label" id="waveform-label">รอสัญญาณเสียง...</div>
+                        </div>
+
+                        <button id="record-button" class="btn-primary btn-record">
+                            <span class="btn-dot"></span>
+                            <span id="record-text">เริ่มบันทึก</span>
+                        </button>
                     </div>
                 </div>
-            </div>
 
-            <!-- Separator -->
-            <div class="relative flex items-center justify-center my-4 lg:my-0">
-                <div class="w-px h-full bg-gray-600 hidden lg:block"></div>
-                <div class="h-px w-full bg-gray-600 block lg:hidden"></div>
-                <span class="absolute px-3 bg-gray-800 text-gray-500 font-bold">หรือ</span>
-            </div>
+                <!-- Divider -->
+                <div class="divider-or">
+                    <span>หรือ</span>
+                </div>
 
-            <!-- Upload and Predict Section -->
-            <div id="upload-section" class="flex-1 bg-gray-700 p-6 rounded-2xl glow-effect text-center">
-                <div class="flex flex-col items-center">
-                    <svg class="w-20 h-20 text-orange-400 mb-4" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg>
-                    <h2 class="text-xl font-semibold text-white mb-2">อัปโหลดไฟล์เสียงไอ</h2>
-                    <p class="text-sm text-gray-400 mb-6">รองรับไฟล์เสียง .wav, .mp3<br>ความยาวไม่เกิน 10 วินาที</p>
-                    <label for="audio-upload" class="px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-full cursor-pointer transition-all duration-300 transform hover:scale-105 shadow-lg">
-                        เลือกไฟล์เสียง
-                    </label>
-                    <input type="file" id="audio-upload" accept="audio/*" class="hidden">
-                    <span id="file-name" class="mt-4 text-sm text-gray-400 italic"></span>
-                </div>
-            </div>
-        </div>
+                <!-- Upload Card -->
+                <div class="input-card" id="upload-section">
+                    <div class="card-inner">
+                        <div class="card-icon-wrap upload-icon-wrap">
+                            <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="17 8 12 3 7 8"/>
+                                <line x1="12" y1="3" x2="12" y2="15"/>
+                            </svg>
+                        </div>
+                        <h2 class="card-title">อัปโหลดไฟล์เสียง</h2>
+                        <p class="card-desc">รองรับ .wav, .mp3 และ .webm<br>ความยาวไม่เกิน 10 วินาที</p>
 
-        <!-- Result Section -->
-        <div id="result-section" class="mt-8 bg-gray-700 p-6 rounded-2xl text-center hidden">
-            <h2 class="text-2xl font-bold mb-4 text-white">ผลการวิเคราะห์</h2>
-            <p id="status-message" class="text-sm text-gray-400 mb-4">กำลังประมวลผล...</p>
-            <div class="flex flex-col items-center">
-                <div class="mb-4 text-center">
-                    <p id="prediction-label" class="text-3xl font-extrabold text-teal-400"></p>
-                    <p id="confidence-score" class="text-lg font-semibold mt-2 text-gray-300"></p>
+                        <!-- Drop Zone -->
+                        <label for="audio-upload" class="drop-zone" id="drop-zone">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.5">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                                <line x1="12" y1="11" x2="12" y2="17"/>
+                                <line x1="9" y1="14" x2="15" y2="14"/>
+                            </svg>
+                            <span class="drop-zone-text">วางไฟล์ที่นี่ หรือ</span>
+                            <span class="drop-zone-cta">เลือกไฟล์</span>
+                            <span id="file-name" class="file-name-display"></span>
+                        </label>
+                        <input type="file" id="audio-upload" accept="audio/*" class="hidden-input">
+                    </div>
                 </div>
-                
-                <div class="w-full max-w-sm">
-                    <div id="probability-bar-container" class="flex flex-col gap-2 mt-4"></div>
+
+            </section>
+
+            <!-- Result Section -->
+            <section class="result-section hidden" id="result-section">
+
+                <!-- Loading State -->
+                <div class="result-loading" id="result-loading">
+                    <div class="loader-ring">
+                        <div></div><div></div><div></div><div></div>
+                    </div>
+                    <p id="status-message" class="loader-text">กำลังประมวลผล...</p>
                 </div>
+
+                <!-- Result Card -->
+                <div class="result-card hidden" id="result-card">
+                    <div class="result-header">
+                        <div class="result-badge" id="result-badge">
+                            <svg class="badge-icon" id="badge-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                        </div>
+                        <div class="result-titles">
+                            <p class="result-eyebrow">ผลการวิเคราะห์</p>
+                            <p class="result-label" id="prediction-label">—</p>
+                        </div>
+                    </div>
+
+                    <p class="confidence-text" id="confidence-score"></p>
+
+                    <!-- Probability Bars -->
+                    <div class="prob-section">
+                        <p class="prob-title">ความน่าจะเป็น</p>
+                        <div id="probability-bar-container" class="prob-bars"></div>
+                    </div>
+
+                    <button id="reset-button" class="btn-ghost">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                            <path d="M3 3v5h5"/>
+                        </svg>
+                        วิเคราะห์อีกครั้ง
+                    </button>
+                </div>
+
+            </section>
+
+        </main>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <p>สำหรับวัตถุประสงค์ทางการวิจัยเท่านั้น — ไม่ใช่การวินิจฉัยทางการแพทย์</p>
+        </footer>
+
+    </div>
+
+    <!-- Modal -->
+    <div id="message-modal" class="modal-overlay hidden">
+        <div class="modal-box">
+            <div class="modal-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="12"/>
+                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
             </div>
-            
-            <button id="reset-button" class="mt-6 px-6 py-3 bg-red-500 hover:bg-red-600 text-white font-bold rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg">
-                เริ่มต้นใหม่
-            </button>
+            <h3 id="modal-title" class="modal-title"></h3>
+            <p id="modal-message" class="modal-message"></p>
+            <button id="modal-ok-button" class="btn-primary">ตกลง</button>
         </div>
     </div>
 
-    <!-- Message Box Modal -->
-    <div id="message-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center hidden">
-        <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700 max-w-xs w-full text-center">
-            <h3 id="modal-title" class="text-lg font-semibold text-white mb-2"></h3>
-            <p id="modal-message" class="text-sm text-gray-400 mb-4"></p>
-            <button id="modal-ok-button" class="px-4 py-2 bg-teal-500 hover:bg-teal-600 text-white rounded-lg">ตกลง</button>
-        </div>
-    </div>
     <script src="script.js"></script>
 </body>
 </html>
