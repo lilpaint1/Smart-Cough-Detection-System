@@ -12,6 +12,9 @@ COPY cnn_extract.py ./
 COPY index.html ./
 COPY script.js ./
 COPY style.css ./
+COPY homepage.html ./
+COPY homepage.css ./
+COPY homepage.js ./
 # ติดตั้ง Library ต่างๆ จาก requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
