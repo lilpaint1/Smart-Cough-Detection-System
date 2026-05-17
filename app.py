@@ -32,10 +32,27 @@ except Exception as e:
     raise e
 
 # --- Serve static files (frontend) ---
+
 @app.route("/")
+def homepage():
+    """Landing page — served at root"""
+    return send_from_directory(".", "homepage.html")
+
+@app.route("/app")
 def index():
+    """Main analysis app — served at /app"""
     return send_from_directory(".", "index.html")
 
+# Static assets — homepage
+@app.route("/homepage.css")
+def homepage_css():
+    return send_from_directory(".", "homepage.css")
+
+@app.route("/homepage.js")
+def homepage_js():
+    return send_from_directory(".", "homepage.js")
+
+# Static assets — main app
 @app.route("/style.css")
 def css():
     return send_from_directory(".", "style.css")
