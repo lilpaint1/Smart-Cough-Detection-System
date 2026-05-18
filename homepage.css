@@ -347,6 +347,7 @@ a { text-decoration: none; color: inherit; }
     z-index: 2;
     display: flex;
     justify-content: center;
+    padding: 20px 28px 12px;  /* give space for floating chips */
 }
 
 .visual-card {
@@ -438,6 +439,7 @@ a { text-decoration: none; color: inherit; }
     gap: 14px;
 }
 
+/* Result cycling transition */
 .rp-header {
     display: flex;
     align-items: center;
@@ -451,11 +453,15 @@ a { text-decoration: none; color: inherit; }
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    transition: background 0.4s var(--ease-out), color 0.4s var(--ease-out), transform 0.3s var(--ease-spring);
 }
 
-.rp-icon.healthy {
-    background: var(--green-dim);
-    color: var(--green);
+.rp-icon.healthy     { background: var(--green-dim);            color: var(--green); }
+.rp-icon.covid       { background: rgba(220,38,38,0.10);        color: var(--red); }
+.rp-icon.symptomatic { background: rgba(202,138,4,0.10);        color: var(--yellow); }
+
+.rp-icon.flip {
+    transform: rotateY(90deg);
 }
 
 .rp-label {
@@ -470,15 +476,19 @@ a { text-decoration: none; color: inherit; }
 .rp-value {
     font-size: 1.25rem;
     font-weight: 600;
-    color: var(--green);
     letter-spacing: -0.02em;
+    transition: color 0.4s var(--ease-out), opacity 0.25s;
 }
+.rp-value.healthy     { color: var(--green); }
+.rp-value.covid       { color: var(--red); }
+.rp-value.symptomatic { color: var(--yellow); }
 
 .rp-conf {
     margin-left: auto;
     font-size: 0.8rem;
     font-weight: 600;
     color: var(--text2);
+    transition: opacity 0.3s;
 }
 
 .rp-bars { display: flex; flex-direction: column; gap: 8px; }
@@ -505,7 +515,7 @@ a { text-decoration: none; color: inherit; }
 .rp-fill {
     height: 100%;
     border-radius: 50px;
-    transition: width 1.2s var(--ease-out);
+    transition: width 0.9s var(--ease-out), background 0.5s var(--ease-out);
 }
 
 /* Floating chips */
@@ -523,23 +533,32 @@ a { text-decoration: none; color: inherit; }
     padding: 7px 12px;
     box-shadow: var(--shadow-md);
     white-space: nowrap;
+    z-index: 10;
+    pointer-events: none;
+    will-change: transform;
 }
 
 .chip-a {
-    top: -14px;
-    right: -14px;
-    animation: chipFloat 3s ease-in-out infinite alternate;
+    top: -16px;
+    right: -16px;
+    animation: chipFloatA 3s ease-in-out infinite alternate;
 }
 
 .chip-b {
-    bottom: 24px;
-    left: -20px;
-    animation: chipFloat 3.5s ease-in-out 0.5s infinite alternate;
+    bottom: 20px;
+    left: -24px;
+    animation: chipFloatB 3.5s ease-in-out 0.5s infinite alternate;
 }
 
-@keyframes chipFloat {
-    from { transform: translateY(0); }
-    to   { transform: translateY(-6px); }
+@keyframes chipFloatA {
+    0%   { transform: translateY(0px) rotate(-1deg); }
+    50%  { transform: translateY(-5px) rotate(0.5deg); }
+    100% { transform: translateY(-8px) rotate(-0.5deg); }
+}
+@keyframes chipFloatB {
+    0%   { transform: translateY(0px) rotate(1deg); }
+    50%  { transform: translateY(-4px) rotate(-0.5deg); }
+    100% { transform: translateY(-7px) rotate(0.5deg); }
 }
 
 /* ─── Reveal animations ──────────────────────────────────── */
