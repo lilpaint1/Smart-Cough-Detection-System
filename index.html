@@ -7,6 +7,55 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* ── คำแนะนำ + ปุ่ม action (ของใหม่ ใช้โทนเดิม) ── */
+        .reco-block { margin-top: 4px; }
+        .reco-text {
+            font-size: 0.92rem;
+            line-height: 1.6;
+            color: var(--text1, #1c1c1e);
+            margin: 6px 0 0;
+        }
+        .reco-disclaimer {
+            font-size: 0.74rem;
+            line-height: 1.5;
+            color: var(--text3, #9a9a9e);
+            margin: 10px 0 0;
+        }
+        .action-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+        }
+        .action-row .action-btn { flex: 1; justify-content: center; }
+        .action-outline {
+            background: transparent;
+            border: 1.5px solid var(--teal, #2dd4bf);
+            color: var(--teal, #2dd4bf);
+        }
+        .action-btn svg { flex-shrink: 0; }
+
+        /* ── call picker sheet ── */
+        .call-list { display: flex; flex-direction: column; gap: 8px; margin: 8px 0 14px; }
+        .call-item {
+            display: flex; align-items: center; gap: 12px;
+            padding: 13px 16px; border-radius: 14px;
+            background: rgba(127,127,127,0.06);
+            text-decoration: none; color: var(--text1, #1c1c1e);
+            transition: background 0.18s;
+        }
+        .call-item:active { background: rgba(127,127,127,0.14); }
+        .call-num { font-weight: 600; font-size: 1.05rem; letter-spacing: 0.02em; }
+        .call-desc { font-size: 0.82rem; color: var(--text2, #6a6a6e); }
+        .call-emoji { font-size: 1.3rem; }
+        .custom-call-row { display: flex; gap: 8px; margin-top: 6px; }
+        .custom-call-row input {
+            flex: 1; padding: 12px 14px; border-radius: 12px;
+            border: 1px solid var(--border, rgba(0,0,0,0.1));
+            font-family: inherit; font-size: 0.95rem; outline: none;
+        }
+        .custom-call-row input:focus { border-color: var(--teal, #2dd4bf); }
+    </style>
 </head>
 <body>
 
@@ -33,15 +82,25 @@
 
     <div class="safe-top"></div>
 
-    <!-- Back navigation -->
-    <div class="back-nav">
-        <a href="/" class="back-link">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                <path d="M19 12H5M12 5l-7 7 7 7"/>
-            </svg>
-            CoughAI Home
+    <!-- Top Nav -->
+    <nav class="app-nav">
+        <a href="/" class="app-nav-logo">
+            <div class="app-nav-icon">
+                <svg width="14" height="9" viewBox="0 0 36 20" fill="none">
+                    <path d="M0 10 H6 L9 2 L12 18 L15 6 L18 14 L21 10 H36"
+                          stroke="white" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            <span>CoughAI</span>
         </a>
-    </div>
+        <div class="app-nav-links">
+            <a href="/" class="app-nav-link">Home</a>
+            <a href="/app" class="app-nav-link active">App</a>
+            <a href="/dashboard" class="app-nav-link app-nav-dashboard">
+                <span class="app-nav-dot"></span>Dashboard
+            </a>
+        </div>
+    </nav>
 
     <!-- Header -->
     <header class="page-header">
@@ -51,7 +110,7 @@
 
     <main class="page-scroll">
 
-        <!-- Summary banner (Health-style) -->
+        <!-- Summary banner -->
         <div class="banner stagger-1">
             <div class="banner-icon">
                 <svg width="18" height="18" viewBox="0 0 36 20" fill="none">
@@ -65,13 +124,11 @@
             </div>
         </div>
 
-        <!-- Section label -->
         <p class="group-label stagger-2">เริ่มต้น</p>
 
         <!-- Input tiles -->
         <div class="tiles stagger-2" id="input-section">
 
-            <!-- Record -->
             <div class="tile" id="record-section">
                 <div class="tile-header">
                     <span class="chip chip-teal">
@@ -97,12 +154,8 @@
                 </button>
             </div>
 
-            <!-- Divider -->
-            <div class="tile-divider">
-                <span>หรือ</span>
-            </div>
+            <div class="tile-divider"><span>หรือ</span></div>
 
-            <!-- Upload -->
             <div class="tile" id="upload-section">
                 <div class="tile-header">
                     <span class="chip chip-orange">
@@ -137,7 +190,6 @@
 
             <p class="group-label">ผลวิเคราะห์</p>
 
-            <!-- Loading -->
             <div class="result-loading" id="result-loading">
                 <div class="ios-spinner">
                     <div></div><div></div><div></div><div></div>
@@ -146,7 +198,6 @@
                 <p id="status-message" class="loading-label">กำลังวิเคราะห์...</p>
             </div>
 
-            <!-- Result tile -->
             <div class="tile result-tile" id="result-card" style="display:none">
                 <div class="result-top">
                     <div class="result-badge" id="result-badge">
@@ -155,7 +206,7 @@
                         </svg>
                     </div>
                     <div class="result-info">
-                        <p class="result-category">การวินิจฉัย</p>
+                        <p class="result-category">การคัดกรอง</p>
                         <p class="result-label" id="prediction-label">—</p>
                     </div>
                 </div>
@@ -167,7 +218,35 @@
                 <p class="prob-head">ความน่าจะเป็น</p>
                 <div id="probability-bar-container"></div>
 
-                <button id="reset-button" class="ghost-btn">
+                <!-- ── คำแนะนำเบื้องต้น (ของใหม่) ── -->
+                <div class="h-divider"></div>
+                <div class="reco-block">
+                    <p class="prob-head">คำแนะนำเบื้องต้น</p>
+                    <p class="reco-text" id="reco-text">—</p>
+                    <p class="reco-disclaimer">
+                        * ผลนี้เป็นการคัดกรองเบื้องต้นด้วย AI ไม่ใช่การวินิจฉัยทางการแพทย์
+                        หากมีอาการน่ากังวล โปรดพบแพทย์เพื่อตรวจยืนยัน
+                    </p>
+                </div>
+
+                <!-- ── ปุ่ม action (ของใหม่) ── -->
+                <div class="action-row">
+                    <button id="hospital-btn" class="action-btn action-teal">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                            <line x1="12" y1="7" x2="12" y2="13"/><line x1="9" y1="10" x2="15" y2="10"/>
+                        </svg>
+                        รพ. ใกล้ฉัน
+                    </button>
+                    <button id="call-btn" class="action-btn action-outline">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/>
+                        </svg>
+                        โทรปรึกษาแพทย์
+                    </button>
+                </div>
+
+                <button id="reset-button" class="ghost-btn" style="margin-top:14px">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
                         <path d="M3 3v5h5"/>
@@ -182,7 +261,7 @@
 
 </div>
 
-<!-- Modal (iOS action sheet style) -->
+<!-- Modal (info / error) -->
 <div id="message-modal" class="sheet-overlay" style="display:none">
     <div class="sheet">
         <div class="sheet-handle"></div>
@@ -196,6 +275,37 @@
         <h3 id="modal-title" class="sheet-title"></h3>
         <p id="modal-message" class="sheet-msg"></p>
         <button id="modal-ok-button" class="action-btn action-teal" style="width:100%;justify-content:center">ตกลง</button>
+    </div>
+</div>
+
+<!-- Call picker sheet (ของใหม่) -->
+<div id="call-modal" class="sheet-overlay" style="display:none">
+    <div class="sheet">
+        <div class="sheet-handle"></div>
+        <h3 class="sheet-title">โทรปรึกษา</h3>
+        <p class="sheet-msg" style="margin-bottom:6px">เลือกสายด่วนสุขภาพ หรือกรอกเบอร์ รพ. ที่ต้องการ</p>
+
+        <div class="call-list">
+            <a href="tel:1669" class="call-item">
+                <span class="call-emoji">🚑</span>
+                <span><span class="call-num">1669</span><br><span class="call-desc">เจ็บป่วยฉุกเฉิน (การแพทย์ฉุกเฉิน)</span></span>
+            </a>
+            <a href="tel:1422" class="call-item">
+                <span class="call-emoji">🦠</span>
+                <span><span class="call-num">1422</span><br><span class="call-desc">กรมควบคุมโรค (โควิด / โรคติดต่อ)</span></span>
+            </a>
+            <a href="tel:1330" class="call-item">
+                <span class="call-emoji">🏥</span>
+                <span><span class="call-num">1330</span><br><span class="call-desc">สปสช. (สิทธิรักษา / สอบถามทั่วไป)</span></span>
+            </a>
+        </div>
+
+        <div class="custom-call-row">
+            <input id="custom-tel" type="tel" inputmode="tel" placeholder="เบอร์ รพ. ที่ต้องการโทร">
+            <button id="custom-call-btn" class="action-btn action-teal" style="padding:12px 18px">โทร</button>
+        </div>
+
+        <button id="call-cancel" class="ghost-btn" style="width:100%;justify-content:center;margin-top:12px">ปิด</button>
     </div>
 </div>
 
