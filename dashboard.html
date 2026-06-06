@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CoughAI — Edge Device Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="homepage.css">
+    <style>
+        body { padding-top: 64px; }
+
+        .dash-wrap {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 24px 80px;
+        }
+        .dash-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        .dash-title {
+            font-family: var(--font-serif);
+            font-size: 2.2rem;
+            font-weight: 400;
+            letter-spacing: -0.02em;
+            color: var(--text1);
+        }
+        .dash-sub {
+            color: var(--text2);
+            font-size: 0.95rem;
+            margin-top: 4px;
+        }
+        .device-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--bg-white);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 10px 16px;
+            font-size: 0.88rem;
+            color: var(--text1);
+            box-shadow: var(--shadow-sm);
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--text3);
+            transition: background 0.3s;
+        }
+        .status-dot.online {
+            background: #22c55e;
+            box-shadow: 0 0 0 4px rgba(34,197,94,0.18);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 4px rgba(34,197,94,0.18); }
+            50%      { box-shadow: 0 0 0 8px rgba(34,197,94,0.05); }
+        }
+
+        /* Stats grid */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 14px;
+            margin-bottom: 32px;
+        }
+        .stat-card {
+            background: var(--bg-white);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 18px 20px;
+            box-shadow: var(--shadow-sm);
+        }
+        .stat-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text2);
+            font-weight: 500;
+        }
+        .stat-value {
+            font-size: 1.9rem;
+            font-weight: 600;
+            color: var(--text1);
+            margin-top: 6px;
+            letter-spacing: -0.02em;
+        }
+        .stat-value.danger  { color: #dc2626; }
+        .stat-value.warn    { color: #ca8a04; }
+        .stat-value.ok      { color: #16a34a; }
+
+        /* Latest result card */
+        .latest-card {
+            background: var(--bg-white);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 28px;
+            margin-bottom: 32px;
+            box-shadow: var(--shadow-md);
+        }
+        .latest-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .latest-title {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text2);
+            font-weight: 600;
+        }
+        .latest-time {
+            font-size: 0.82rem;
+            color: var(--text3);
+            font-variant-numeric: tabular-nums;
+        }
+        .latest-body {
+            display: grid;
+            grid-template-columns: 1fr 1.4fr;
+            gap: 32px;
+            align-items: center;
+        }
+        @media (max-width: 720px) {
+            .latest-body { grid-template-columns: 1fr; }
+        }
+        .latest-class {
+            font-family: var(--font-serif);
+            font-size: 2.6rem;
+            font-weight: 400;
+            letter-spacing: -0.02em;
+            margin-bottom: 8px;
+        }
+        .latest-class.covid       { color: #dc2626; }
+        .latest-class.symptomatic { color: #ca8a04; }
+        .latest-class.healthy     { color: #16a34a; }
+        .latest-conf {
+            font-size: 0.95rem;
+            color: var(--text2);
+        }
+        .latest-risk-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+        .latest-risk-chip.HIGH   { background: rgba(220,38,38,0.10);  color: #dc2626; }
+        .latest-risk-chip.MEDIUM { background: rgba(202,138,4,0.10);  color: #ca8a04; }
+        .latest-risk-chip.LOW    { background: rgba(22,163,74,0.10);  color: #16a34a; }
+
+        .prob-list { display: flex; flex-direction: column; gap: 10px; }
+        .prob-row {
+            display: grid;
+            grid-template-columns: 110px 1fr 60px;
+            gap: 12px;
+            align-items: center;
+            font-size: 0.88rem;
+        }
+        .prob-name { color: var(--text2); }
+        .prob-track {
+            height: 8px;
+            background: rgba(0,0,0,0.05);
+            border-radius: 999px;
+            overflow: hidden;
+        }
+        .prob-fill {
+            height: 100%;
+            border-radius: 999px;
+            transition: width 0.6s var(--ease-out);
+        }
+        .prob-fill.covid       { background: #ef4444; }
+        .prob-fill.symptomatic { background: #eab308; }
+        .prob-fill.healthy     { background: #22c55e; }
+        .prob-pct {
+            font-variant-numeric: tabular-nums;
+            color: var(--text1);
+            font-weight: 500;
+            text-align: right;
+        }
+
+        /* History */
+        .history-section h3 {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text2);
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        .history-list {
+            background: var(--bg-white);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+        .history-row {
+            display: grid;
+            grid-template-columns: 1fr 1.2fr 0.9fr 0.6fr;
+            gap: 14px;
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.9rem;
+            align-items: center;
+        }
+        .history-row:last-child { border-bottom: none; }
+        .history-row.head {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text3);
+            background: rgba(0,0,0,0.015);
+            font-weight: 600;
+        }
+        .history-class {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        .dot.covid       { background: #ef4444; }
+        .dot.symptomatic { background: #eab308; }
+        .dot.healthy     { background: #22c55e; }
+        .history-empty {
+            padding: 40px;
+            text-align: center;
+            color: var(--text3);
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 600px) {
+            .history-row {
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+            }
+            .history-row .col-device,
+            .history-row .col-risk { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav scrolled" id="nav">
+    <div class="nav-inner">
+        <a href="/" class="nav-logo">
+            <div class="nav-logo-icon">
+                <svg width="16" height="10" viewBox="0 0 36 20" fill="none">
+                    <path d="M0 10 H6 L9 2 L12 18 L15 6 L18 14 L21 10 H36"
+                          stroke="white" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            <span>CoughAI</span>
+        </a>
+        <nav class="nav-links">
+            <a href="/" class="nav-link">Home</a>
+            <a href="/app" class="nav-link">App</a>
+            <a href="/dashboard" class="nav-link active nav-link-dashboard">
+                <span class="nav-dash-dot" id="nav-dash-dot"></span>
+                Dashboard
+            </a>
+        </nav>
+        <a href="/app" class="nav-cta">Open App →</a>
+    </div>
+</nav>
+
+<div class="dash-wrap">
+
+    <div class="dash-head">
+        <div>
+            <h1 class="dash-title">Edge Device Dashboard</h1>
+            <p class="dash-sub">Real-time results from CoughAI Telemedicine Edge devices</p>
+        </div>
+        <div class="device-status">
+            <span class="status-dot" id="status-dot"></span>
+            <span id="status-text">Connecting…</span>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stat-grid">
+        <div class="stat-card">
+            <div class="stat-label">Total screenings</div>
+            <div class="stat-value" id="stat-total">—</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">High risk</div>
+            <div class="stat-value danger" id="stat-high">—</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Medium</div>
+            <div class="stat-value warn" id="stat-med">—</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Low</div>
+            <div class="stat-value ok" id="stat-low">—</div>
+        </div>
+    </div>
+
+    <!-- Latest result -->
+    <div class="latest-card" id="latest-card" style="display:none">
+        <div class="latest-head">
+            <span class="latest-title">Latest screening</span>
+            <span class="latest-time" id="latest-time">—</span>
+        </div>
+        <div class="latest-body">
+            <div>
+                <div class="latest-class" id="latest-class">—</div>
+                <div class="latest-conf" id="latest-conf">—</div>
+                <span class="latest-risk-chip LOW" id="latest-risk">LOW RISK</span>
+                <p class="latest-conf" style="margin-top:14px;font-size:0.82rem;color:var(--text3)">
+                    Device: <span id="latest-device">—</span>
+                </p>
+            </div>
+            <div class="prob-list" id="latest-probs"></div>
+        </div>
+    </div>
+
+    <!-- History -->
+    <div class="history-section">
+        <h3>History</h3>
+        <div class="history-list" id="history-list">
+            <div class="history-empty">No screenings yet — waiting for edge device…</div>
+        </div>
+    </div>
+</div>
+
+<script src="dashboard.js"></script>
+</body>
+</html>
