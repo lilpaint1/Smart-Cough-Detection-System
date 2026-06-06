@@ -1,13 +1,11 @@
 // ============================================================
 // CoughAI — script.js
-// Backend / audio logic: 100% unchanged
-// UI layer: updated to match new Apple Health design
 // ============================================================
 
 const LABELS      = ['covid', 'healthy', 'symptomatic'];
 const SAMPLE_RATE = 44100;
 const DURATION    = 5;
-const FLASK_URL   = "https://coughai-985046969554.asia-southeast3.run.app/predict";
+const FLASK_URL   = "/predict";   // relative path → ใช้ได้ทุก host/port
 
 // ── DOM refs ──────────────────────────────────────────────
 const recordButton    = document.getElementById('record-button');
@@ -35,16 +33,30 @@ const resultBadge     = document.getElementById('result-badge');
 const badgeIcon       = document.getElementById('badge-icon');
 const dropZone        = document.getElementById('drop-zone');
 
+// ── new refs ──────────────────────────────────────────────
+const recoText        = document.getElementById('reco-text');
+const hospitalBtn     = document.getElementById('hospital-btn');
+const callBtn         = document.getElementById('call-btn');
+const callModal       = document.getElementById('call-modal');
+const callCancel      = document.getElementById('call-cancel');
+const customTel       = document.getElementById('custom-tel');
+const customCallBtn   = document.getElementById('custom-call-btn');
+
 let mediaRecorder, audioChunks = [], audioContext, analyserNode, animationFrameId;
 
-// ── Splash → App transition ───────────────────────────────
+// คำแนะนำ fallback (เผื่อ backend ไม่ส่ง recommendation มา)
+const RECO_FALLBACK = {
+    healthy:     'เสียงไออยู่ในเกณฑ์ปกติ ดูแลสุขภาพ พักผ่อนให้เพียงพอ ดื่มน้ำมาก ๆ',
+    symptomatic: 'พบลักษณะการไอที่ควรเฝ้าระวัง พักผ่อน ดื่มน้ำอุ่น และพบแพทย์หากอาการไม่ดีขึ้นใน 2-3 วัน',
+    covid:       'พบลักษณะการไอที่อาจสัมพันธ์กับโควิด-19 แนะนำตรวจ ATK แยกกักตัว และติดต่อสายด่วน 1422',
+};
+
+// ── Splash → App ──────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
-    // Set date in header
     const d = new Date();
     const el = document.getElementById('app-date');
     if (el) el.textContent = d.toLocaleDateString('th-TH', { weekday:'long', day:'numeric', month:'long' });
 
-    // After 2.2s: hide splash, reveal app
     setTimeout(() => {
         const splash = document.getElementById('splash');
         const app    = document.getElementById('app');
@@ -148,7 +160,7 @@ if (dropZone) {
     });
 }
 
-// ── Audio conversion (unchanged) ─────────────────────────
+// ── Audio conversion ──────────────────────────────────────
 async function convertToWav(blob) {
     const ab  = await blob.arrayBuffer();
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -180,9 +192,8 @@ function interleave(ch) {
 }
 function writeString(v,o,s){for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i));}
 
-// ── Process → API (unchanged) ────────────────────────────
+// ── Process → API ─────────────────────────────────────────
 async function processAudio(audioBlob) {
-    // Switch to result view
     inputSection.style.display = 'none';
     resultSection.style.display = 'block';
     resultLoading.style.display = 'flex';
@@ -196,7 +207,7 @@ async function processAudio(audioBlob) {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         if (data.error) throw new Error(data.error);
-        await new Promise(r => setTimeout(r, 350)); // let spinner breathe
+        await new Promise(r => setTimeout(r, 350));
         displayResult(data);
     } catch (err) {
         console.error(err);
@@ -213,7 +224,6 @@ function displayResult(data) {
     const probs = data.probabilities;
     const top   = probs.reduce((m,p) => Math.max(m, p.score), 0);
 
-    // Label + colors
     const map = {
         healthy:     { text:'Healthy',     color:'var(--teal)',   bg:'var(--teal-dim)',   icon:'<polyline points="20 6 9 17 4 12"/>' },
         covid:       { text:'COVID-19',    color:'var(--red)',    bg:'var(--red-dim)',    icon:'<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>' },
@@ -228,7 +238,7 @@ function displayResult(data) {
     badgeIcon.style.stroke       = m.color;
     confidenceScore.textContent  = `ความมั่นใจ ${(top*100).toFixed(1)}%`;
 
-    // Prob bars
+    // probability bars
     probContainer.innerHTML = '';
     const colorMap = { healthy:'healthy', covid:'covid', symptomatic:'symptomatic' };
     probs.forEach(p => {
@@ -245,6 +255,11 @@ function displayResult(data) {
         probContainer.appendChild(row);
         requestAnimationFrame(() => requestAnimationFrame(() => { fill.style.width = `${p.score*100}%`; }));
     });
+
+    // ── คำแนะนำ (ของใหม่) ──
+    if (recoText) {
+        recoText.textContent = data.recommendation || RECO_FALLBACK[cls] || '—';
+    }
 }
 
 function displayError() {
@@ -257,7 +272,46 @@ function displayError() {
     badgeIcon.style.stroke       = 'var(--text2)';
     confidenceScore.textContent  = 'กรุณาลองใหม่อีกครั้ง';
     probContainer.innerHTML      = '';
+    if (recoText) recoText.textContent = 'ไม่สามารถประมวลผลได้ กรุณาลองอัดเสียงใหม่อีกครั้ง';
 }
+
+// ── รพ. ใกล้ฉัน (geolocation → Google Maps) ───────────────
+hospitalBtn?.addEventListener('click', () => {
+    const openMaps = (lat, lng) => {
+        const url = (lat != null)
+            ? `https://www.google.com/maps/search/โรงพยาบาล/@${lat},${lng},14z`
+            : `https://www.google.com/maps/search/โรงพยาบาลใกล้ฉัน`;
+        window.open(url, '_blank');
+    };
+    if (!navigator.geolocation) { openMaps(null, null); return; }
+
+    hospitalBtn.disabled = true;
+    const orig = hospitalBtn.innerHTML;
+    hospitalBtn.textContent = 'กำลังหาตำแหน่ง...';
+
+    navigator.geolocation.getCurrentPosition(
+        pos => {
+            openMaps(pos.coords.latitude, pos.coords.longitude);
+            hospitalBtn.disabled = false; hospitalBtn.innerHTML = orig;
+        },
+        () => {
+            // ปฏิเสธ/ล้มเหลว → เปิดแบบค้นหาทั่วไป
+            openMaps(null, null);
+            hospitalBtn.disabled = false; hospitalBtn.innerHTML = orig;
+        },
+        { enableHighAccuracy: true, timeout: 8000 }
+    );
+});
+
+// ── โทรปรึกษาแพทย์ (call picker sheet) ────────────────────
+callBtn?.addEventListener('click', () => { callModal.style.display = 'flex'; });
+callCancel?.addEventListener('click', () => { callModal.style.display = 'none'; });
+callModal?.addEventListener('click', e => { if (e.target === callModal) callModal.style.display = 'none'; });
+customCallBtn?.addEventListener('click', () => {
+    const num = (customTel.value || '').replace(/[^0-9+]/g, '');
+    if (!num) { showModal('ยังไม่มีเบอร์', 'กรุณากรอกเบอร์โทรก่อน'); return; }
+    window.location.href = `tel:${num}`;
+});
 
 // ── Reset ─────────────────────────────────────────────────
 resetButton.addEventListener('click', () => {
