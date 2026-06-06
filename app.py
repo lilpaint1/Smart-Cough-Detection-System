@@ -16,6 +16,7 @@ CoughAI Backend — Ensemble (CNN + RF)  ·  Cloud Run ready
 
 import os
 import io
+import json
 import numpy as np
 import joblib
 import soundfile as sf
@@ -42,6 +43,7 @@ LABELS         = ["covid", "healthy", "symptomatic"]
 IMAGE_SHAPE    = (128, 128, 1)
 RF_MODEL_PATH  = "cough_rf_model.pkl"
 CNN_MODEL_PATH = "cough_cnn_model.h5"
+MINMAX_PATH    = "cough_min_max.json"
 UPLOAD_FOLDER  = "uploads"
 ENSEMBLE_ALPHA = 0.5                  # weight ของ CNN (เหมือน ensemble.py)
 
@@ -118,6 +120,20 @@ try:
 except Exception as e:
     print(f"⚠️  โหลด CNN ไม่ได้ ({e}) → ใช้แค่ RF (ensemble OFF)")
 
+# global min/max จากตอนเทรน → normalize ตอน inference ให้ตรงกับ train
+CNN_MIN, CNN_MAX = None, None
+if cnn_model is not None and os.path.exists(MINMAX_PATH):
+    try:
+        with open(MINMAX_PATH) as f:
+            mm = json.load(f)
+        CNN_MIN, CNN_MAX = float(mm["min"]), float(mm["max"])
+        print(f"✅ CNN normalization: global min={CNN_MIN:.3f} max={CNN_MAX:.3f}")
+    except Exception as e:
+        print(f"⚠️  อ่าน {MINMAX_PATH} ไม่ได้ ({e}) → fallback per-sample normalize")
+else:
+    if cnn_model is not None:
+        print(f"⚠️  ไม่พบ {MINMAX_PATH} → fallback per-sample normalize (ผลอาจเพี้ยนเล็กน้อย)")
+
 # ── Firestore (optional persistence) ──
 db = None
 try:
@@ -178,8 +194,15 @@ def prepare_cnn_input(wav_path: str):
         feat = feat[:, :cols, :]
     elif feat.shape[1] < cols:
         feat = np.pad(feat, ((0, 0), (0, cols - feat.shape[1]), (0, 0)))
-    fmin, fmax = float(feat.min()), float(feat.max())
-    feat = (feat - fmin) / (fmax - fmin + 1e-8)
+
+    # normalize ให้ตรงกับตอนเทรน: ใช้ global min/max ถ้ามี
+    if CNN_MIN is not None and CNN_MAX is not None:
+        feat = (feat - CNN_MIN) / (CNN_MAX - CNN_MIN + 1e-8)
+        feat = np.clip(feat, 0.0, 1.0)        # กันค่าหลุดช่วง
+    else:
+        fmin, fmax = float(feat.min()), float(feat.max())
+        feat = (feat - fmin) / (fmax - fmin + 1e-8)
+
     return feat[np.newaxis, ...].astype(np.float32)
 
 
