@@ -67,6 +67,6 @@ def process_and_save_data_cnn(base_path, classes, output_dir="cnn_features", out
     
 
 if __name__ == "__main__":
-    BASE_PATH = r"C:\Users\Acer\Downloads\Cough Detection\public_dataset\sorted_audio"
+    BASE_PATH = r"C:\Users\Acer\Downloads\Cough Detection\public_dataset\verify_sound"
     CLASSES = ["covid", "healthy", "symptomatic"]
     process_and_save_data_cnn(BASE_PATH, CLASSES)
