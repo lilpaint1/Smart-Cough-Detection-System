@@ -9,8 +9,8 @@ CoughAI Backend — Ensemble (CNN + RF)  ·  Cloud Run ready
   4. คืน risk_level + คำแนะนำเบื้องต้น (ภาษาไทย) กลับไปให้หน้าเว็บ
 
 โมเดลที่ใช้:
-  - cough_xgb_model.pkl  (required, tabular 416-D)
-  - cough_cnn_model.h5   (optional → ถ้าโหลดไม่ได้ fallback เป็น XGB อย่างเดียว)
+  - cough_rf_model.pkl   (required, tabular 416-D)
+  - cough_cnn_model.h5   (optional → ถ้าโหลดไม่ได้ fallback เป็น RF อย่างเดียว)
 ============================================================
 """
 
@@ -41,14 +41,14 @@ os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")
 # ============================================================
 LABELS         = ["covid", "healthy", "symptomatic"]
 IMAGE_SHAPE    = (128, 128, 1)
-XGB_MODEL_PATH = "cough_xgb_model.pkl"   # tabular 416-D (เปลี่ยนจาก RF → XGBoost)
+RF_MODEL_PATH  = "cough_rf_model.pkl"   # tabular 416-D (Random Forest)
 CNN_MODEL_PATH = "cough_cnn_model.h5"
 MINMAX_PATH    = "cough_min_max.json"
 UPLOAD_FOLDER  = "uploads"
-ENSEMBLE_ALPHA = 0.5                  # weight ของ CNN (อีกครึ่งเป็น XGB)
+ENSEMBLE_ALPHA = 0.5                  # weight ของ CNN (อีกครึ่งเป็น RF)
 
 # Drive file IDs (ตั้งเป็น environment variable ตอน deploy)
-XGB_FILE_ID = os.environ.get("XGB_MODEL_FILE_ID", "")
+RF_FILE_ID  = os.environ.get("RF_MODEL_FILE_ID",  "")
 CNN_FILE_ID = os.environ.get("CNN_MODEL_FILE_ID", "")
 
 # risk + คำแนะนำต่อ class (ภาษาไทย) — กรอบ "คัดกรอง" ไม่ใช่ "วินิจฉัย"
@@ -101,13 +101,13 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 print("📂 กำลังเตรียมโมเดล...")
 
-# ── XGB (required, tabular 416-D) ──
-ensure_model(XGB_MODEL_PATH, XGB_FILE_ID)
+# ── RF (required, tabular 416-D) ──
+ensure_model(RF_MODEL_PATH, RF_FILE_ID)
 try:
-    xgb_model = joblib.load(XGB_MODEL_PATH)
-    print(f"✅ XGB model: {XGB_MODEL_PATH}")
+    rf_model = joblib.load(RF_MODEL_PATH)
+    print(f"✅ RF model: {RF_MODEL_PATH}")
 except Exception as e:
-    print(f"❌ โหลด XGB ไม่ได้: {e}")
+    print(f"❌ โหลด RF ไม่ได้: {e}")
     raise
 
 # ── CNN (optional) ──
@@ -118,7 +118,7 @@ try:
     cnn_model = tf.keras.models.load_model(CNN_MODEL_PATH)
     print(f"✅ CNN model: {CNN_MODEL_PATH}  (ensemble ON, alpha={ENSEMBLE_ALPHA})")
 except Exception as e:
-    print(f"⚠️  โหลด CNN ไม่ได้ ({e}) → ใช้แค่ XGB (ensemble OFF)")
+    print(f"⚠️  โหลด CNN ไม่ได้ ({e}) → ใช้แค่ RF (ensemble OFF)")
 
 # global min/max จากตอนเทรน → normalize ตอน inference ให้ตรงกับ train
 CNN_MIN, CNN_MAX = None, None
@@ -231,22 +231,22 @@ def preprocess_wav(path: str) -> None:
 
 
 def predict_ensemble(wav_path: str) -> dict:
-    """Soft-voting ensemble (CNN + XGB) — fallback เป็น XGB ถ้า CNN ไม่พร้อม"""
+    """Soft-voting ensemble (CNN + RF) — fallback เป็น RF ถ้า CNN ไม่พร้อม"""
     feat_rf, err = extract_features(wav_path)
     if feat_rf is None:
         raise RuntimeError(f"feature extraction failed: {err}")
-    p_xgb = xgb_model.predict_proba(feat_rf.reshape(1, -1))[0]
+    p_rf = rf_model.predict_proba(feat_rf.reshape(1, -1))[0]
 
     if cnn_model is not None:
         x_cnn = prepare_cnn_input(wav_path)
         if x_cnn is not None:
             p_cnn = cnn_model.predict(x_cnn, verbose=0)[0]
-            p_ens = ENSEMBLE_ALPHA * p_cnn + (1 - ENSEMBLE_ALPHA) * p_xgb
+            p_ens = ENSEMBLE_ALPHA * p_cnn + (1 - ENSEMBLE_ALPHA) * p_rf
             mode  = "ensemble"
         else:
-            p_ens, mode = p_xgb, "xgb_only(cnn_feat_failed)"
+            p_ens, mode = p_rf, "rf_only(cnn_feat_failed)"
     else:
-        p_ens, mode = p_xgb, "xgb_only"
+        p_ens, mode = p_rf, "rf_only"
 
     pred_idx = int(np.argmax(p_ens))
     label    = LABELS[pred_idx]
