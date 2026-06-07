@@ -292,37 +292,13 @@ function displayError() {
     if (recoText) recoText.textContent = T('app.fail.reco');
 }
 
-// ── รพ. ใกล้ฉัน (geolocation → Google Maps) ───────────────
+// ── รพ. ใกล้ฉัน → เปิด Google Maps ทันที (ไม่ต้องรอ geolocation) ───────────
+// เปิด URL จริงเลยตอนกด → ไม่มีแท็บเปล่า about:blank อีก
+// Google Maps คำว่า "ใกล้ฉัน" จะใช้ตำแหน่งอุปกรณ์ผ่าน Google เอง
 hospitalBtn?.addEventListener('click', () => {
-    const buildUrl = (lat, lng) =>
-        (lat != null)
-            ? `https://www.google.com/maps/search/${encodeURIComponent(T('maps.hospital'))}/@${lat},${lng},14z`
-            : `https://www.google.com/maps/search/${encodeURIComponent(T('maps.hospitalNear'))}`;
-
-    // เปิดแท็บทันทีระหว่าง user gesture เพื่อกัน popup ถูกบล็อกบนมือถือ
-    const mapWin = window.open('', '_blank');
-
-    const go = (lat, lng) => {
-        const url = buildUrl(lat, lng);
-        if (mapWin && !mapWin.closed) {
-            mapWin.location.href = url;          // เปลี่ยน URL ของแท็บที่เปิดค้างไว้
-        } else {
-            window.location.href = url;          // เผื่อ popup ถูกบล็อก → เปิดในแท็บเดิม
-        }
-    };
-
-    if (!navigator.geolocation) { go(null, null); return; }
-
-    hospitalBtn.disabled = true;
-    const orig = hospitalBtn.innerHTML;
-    hospitalBtn.textContent = T('app.locating');
-    const restore = () => { hospitalBtn.disabled = false; hospitalBtn.innerHTML = orig; };
-
-    navigator.geolocation.getCurrentPosition(
-        pos => { go(pos.coords.latitude, pos.coords.longitude); restore(); },
-        ()  => { go(null, null); restore(); },   // ปฏิเสธ/ล้มเหลว → ค้นหาทั่วไป
-        { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
-    );
+    const url = `https://www.google.com/maps/search/${encodeURIComponent(T('maps.hospitalNear'))}`;
+    const win = window.open(url, '_blank', 'noopener');
+    if (!win) window.location.href = url;   // เผื่อ popup ถูกบล็อก → เปิดในแท็บเดิม
 });
 
 // ── โทรปรึกษาแพทย์ (call picker sheet) ────────────────────
