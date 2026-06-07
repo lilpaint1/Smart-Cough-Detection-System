@@ -1,346 +1,233 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CoughAI Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>CoughAI — ประวัติการวิเคราะห์</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="homepage.css">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&family=DM+Serif+Display&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
     <style>
-        body { padding-top: 64px; }
-
-        .dash-wrap {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 40px 24px 80px;
+        /* ── Top Nav (เหมือนหน้า App) ── */
+        .app-nav {
+            position: sticky; top: 0; z-index: 50;
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 16px; padding: 12px 20px;
+            background: rgba(255,255,255,0.82);
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+            border-bottom: 1px solid var(--sep);
         }
+        .app-nav-logo {
+            display: inline-flex; align-items: center; gap: 9px;
+            text-decoration: none; color: var(--text1);
+            font-weight: 600; font-size: 1.02rem; letter-spacing: -0.01em;
+        }
+        .app-nav-icon {
+            width: 28px; height: 28px; border-radius: 8px;
+            background: var(--teal);
+            display: inline-flex; align-items: center; justify-content: center;
+            box-shadow: 0 2px 6px rgba(22,163,74,0.35);
+        }
+        .app-nav-links { display: flex; align-items: center; gap: 4px; }
+        .app-nav-link {
+            text-decoration: none; color: var(--text2);
+            font-size: 0.9rem; font-weight: 500;
+            padding: 7px 14px; border-radius: 999px;
+            display: inline-flex; align-items: center; gap: 6px;
+            transition: background 0.18s, color 0.18s;
+        }
+        .app-nav-link:hover { color: var(--text1); background: rgba(0,0,0,0.04); }
+        .app-nav-link.active { color: var(--teal); background: var(--teal-dim); }
+        @media (max-width: 480px) {
+            .app-nav { padding: 10px 14px; }
+            .app-nav-link { padding: 6px 11px; font-size: 0.84rem; }
+        }
+
+        /* ── Layout ── */
+        .dash-wrap { max-width: 1080px; margin: 0 auto; padding: 32px 20px 80px; }
+
         .dash-head {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
-            margin-bottom: 32px;
-            flex-wrap: wrap;
-            gap: 16px;
+            display: flex; justify-content: space-between; align-items: flex-end;
+            gap: 16px; flex-wrap: wrap; margin-bottom: 28px;
+        }
+        .dash-eyebrow {
+            font-size: 0.78rem; font-weight: 600; letter-spacing: 0.04em;
+            text-transform: uppercase; color: var(--teal); margin-bottom: 6px;
         }
         .dash-title {
-            font-family: var(--font-serif);
-            font-size: 2.2rem;
-            font-weight: 400;
-            letter-spacing: -0.02em;
-            color: var(--text1);
+            font-family: 'DM Serif Display', serif; font-weight: 400;
+            font-size: 2.3rem; letter-spacing: -0.01em; color: var(--text1); line-height: 1.1;
         }
-        .dash-sub {
-            color: var(--text2);
-            font-size: 0.95rem;
-            margin-top: 4px;
+        .dash-sub { color: var(--text2); font-size: 0.95rem; margin-top: 8px; }
+
+        .dash-actions { display: flex; align-items: center; gap: 10px; }
+        .live-badge {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: var(--card); border: 1px solid var(--sep);
+            border-radius: 999px; padding: 8px 14px;
+            font-size: 0.84rem; color: var(--text2); box-shadow: var(--shadow-sm);
         }
-        .device-status {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            background: var(--bg-white);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 10px 16px;
-            font-size: 0.88rem;
-            color: var(--text1);
-            box-shadow: var(--shadow-sm);
-        }
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--text3);
+        .live-dot {
+            width: 8px; height: 8px; border-radius: 50%; background: var(--text3);
             transition: background 0.3s;
         }
-        .status-dot.online {
-            background: #22c55e;
-            box-shadow: 0 0 0 4px rgba(34,197,94,0.18);
+        .live-dot.on {
+            background: var(--teal);
+            box-shadow: 0 0 0 4px rgba(22,163,74,0.16);
             animation: pulse 2s infinite;
         }
         @keyframes pulse {
-            0%, 100% { box-shadow: 0 0 0 4px rgba(34,197,94,0.18); }
-            50%      { box-shadow: 0 0 0 8px rgba(34,197,94,0.05); }
+            0%,100% { box-shadow: 0 0 0 4px rgba(22,163,74,0.16); }
+            50%     { box-shadow: 0 0 0 8px rgba(22,163,74,0.04); }
         }
+        .refresh-btn {
+            display: inline-flex; align-items: center; gap: 7px;
+            background: var(--card); border: 1px solid var(--sep);
+            border-radius: 999px; padding: 8px 15px; cursor: pointer;
+            font-family: inherit; font-size: 0.84rem; font-weight: 500; color: var(--text1);
+            box-shadow: var(--shadow-sm); transition: background 0.18s;
+        }
+        .refresh-btn:hover { background: var(--card2); }
+        .refresh-btn svg { transition: transform 0.5s var(--ease-out); }
+        .refresh-btn.spin svg { transform: rotate(360deg); }
 
-        /* Stats grid */
+        /* ── Stats ── */
         .stat-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 14px;
-            margin-bottom: 32px;
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 14px; margin-bottom: 28px;
         }
         .stat-card {
-            background: var(--bg-white);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 18px 20px;
-            box-shadow: var(--shadow-sm);
+            background: var(--card); border: 1px solid var(--sep);
+            border-radius: var(--r-card); padding: 18px 20px; box-shadow: var(--shadow-sm);
         }
         .stat-label {
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            color: var(--text2);
-            font-weight: 500;
+            font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.05em;
+            color: var(--text2); font-weight: 600;
         }
         .stat-value {
-            font-size: 1.9rem;
-            font-weight: 600;
-            color: var(--text1);
-            margin-top: 6px;
-            letter-spacing: -0.02em;
+            font-size: 2rem; font-weight: 600; color: var(--text1);
+            margin-top: 4px; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;
         }
-        .stat-value.danger  { color: #dc2626; }
-        .stat-value.warn    { color: #ca8a04; }
-        .stat-value.ok      { color: #16a34a; }
+        .stat-value.danger { color: var(--red); }
+        .stat-value.warn   { color: var(--yellow); }
+        .stat-value.ok     { color: var(--teal); }
 
-        /* Latest result card */
+        /* ── Latest card ── */
         .latest-card {
-            background: var(--bg-white);
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            padding: 28px;
-            margin-bottom: 32px;
-            box-shadow: var(--shadow-md);
+            background: var(--card); border: 1px solid var(--sep);
+            border-radius: 20px; padding: 26px; margin-bottom: 28px;
+            box-shadow: var(--shadow-md); display: none;
         }
         .latest-head {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 20px;
+            display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px;
         }
         .latest-title {
-            font-size: 0.85rem;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: var(--text2);
-            font-weight: 600;
+            font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.07em;
+            color: var(--text2); font-weight: 600;
         }
-        .latest-time {
-            font-size: 0.82rem;
-            color: var(--text3);
-            font-variant-numeric: tabular-nums;
-        }
+        .latest-time { font-size: 0.82rem; color: var(--text3); font-variant-numeric: tabular-nums; }
         .latest-body {
-            display: grid;
-            grid-template-columns: 1fr 1.4fr;
-            gap: 32px;
-            align-items: center;
+            display: grid; grid-template-columns: 1fr 1.4fr; gap: 32px; align-items: center;
         }
-        @media (max-width: 720px) {
-            .latest-body { grid-template-columns: 1fr; }
-        }
+        @media (max-width: 700px) { .latest-body { grid-template-columns: 1fr; gap: 22px; } }
         .latest-class {
-            font-family: var(--font-serif);
-            font-size: 2.6rem;
-            font-weight: 400;
-            letter-spacing: -0.02em;
-            margin-bottom: 8px;
+            font-family: 'DM Serif Display', serif; font-weight: 400;
+            font-size: 2.5rem; letter-spacing: -0.01em; margin-bottom: 6px; line-height: 1.05;
         }
-        .latest-class.covid       { color: #dc2626; }
-        .latest-class.symptomatic { color: #ca8a04; }
-        .latest-class.healthy     { color: #16a34a; }
-        .latest-conf {
-            font-size: 0.95rem;
-            color: var(--text2);
+        .latest-class.covid       { color: var(--red); }
+        .latest-class.symptomatic { color: var(--yellow); }
+        .latest-class.healthy     { color: var(--teal); }
+        .latest-conf { font-size: 0.92rem; color: var(--text2); }
+        .risk-chip {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 5px 12px; border-radius: 999px;
+            font-size: 0.8rem; font-weight: 600; margin-top: 12px;
         }
-        .latest-risk-chip {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 12px;
-            border-radius: 999px;
-            font-size: 0.82rem;
-            font-weight: 600;
-            margin-top: 10px;
-        }
-        .latest-risk-chip.HIGH   { background: rgba(220,38,38,0.10);  color: #dc2626; }
-        .latest-risk-chip.MEDIUM { background: rgba(202,138,4,0.10);  color: #ca8a04; }
-        .latest-risk-chip.LOW    { background: rgba(22,163,74,0.10);  color: #16a34a; }
+        .risk-chip.HIGH   { background: var(--red-dim);    color: var(--red); }
+        .risk-chip.MEDIUM { background: var(--yellow-dim); color: var(--yellow); }
+        .risk-chip.LOW    { background: var(--teal-dim);   color: var(--teal); }
 
-        .prob-list { display: flex; flex-direction: column; gap: 10px; }
+        .prob-list { display: flex; flex-direction: column; gap: 11px; }
         .prob-row {
-            display: grid;
-            grid-template-columns: 110px 1fr 60px;
-            gap: 12px;
-            align-items: center;
-            font-size: 0.88rem;
+            display: grid; grid-template-columns: 92px 1fr 54px; gap: 12px;
+            align-items: center; font-size: 0.88rem;
         }
         .prob-name { color: var(--text2); }
-        .prob-track {
-            height: 8px;
-            background: rgba(0,0,0,0.05);
-            border-radius: 999px;
-            overflow: hidden;
+        .prob-track { height: 8px; background: rgba(0,0,0,0.06); border-radius: 999px; overflow: hidden; }
+        .prob-fill { height: 100%; border-radius: 999px; width: 0; transition: width 0.7s var(--ease-out); }
+        .prob-fill.covid       { background: var(--red); }
+        .prob-fill.symptomatic { background: var(--yellow); }
+        .prob-fill.healthy     { background: var(--teal); }
+        .prob-pct { font-variant-numeric: tabular-nums; color: var(--text1); font-weight: 500; text-align: right; }
+
+        /* ── History ── */
+        .hist-title {
+            font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.07em;
+            color: var(--text2); font-weight: 600; margin-bottom: 12px;
         }
-        .prob-fill {
-            height: 100%;
-            border-radius: 999px;
-            transition: width 0.6s var(--ease-out);
+        .hist-list {
+            background: var(--card); border: 1px solid var(--sep);
+            border-radius: var(--r-card); overflow: hidden; box-shadow: var(--shadow-sm);
         }
-        .prob-fill.covid       { background: #ef4444; }
-        .prob-fill.symptomatic { background: #eab308; }
-        .prob-fill.healthy     { background: #22c55e; }
-        .prob-pct {
-            font-variant-numeric: tabular-nums;
-            color: var(--text1);
-            font-weight: 500;
-            text-align: right;
+        .hist-row {
+            display: grid; grid-template-columns: 1.1fr 1.4fr 0.7fr; gap: 14px;
+            padding: 14px 20px; border-bottom: 1px solid var(--sep);
+            font-size: 0.9rem; align-items: center;
+        }
+        .hist-row:last-child { border-bottom: none; }
+        .hist-row.head {
+            font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em;
+            color: var(--text3); background: rgba(0,0,0,0.015); font-weight: 600;
+        }
+        .hist-class { display: inline-flex; align-items: center; gap: 8px; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+        .dot.covid { background: var(--red); }
+        .dot.symptomatic { background: var(--yellow); }
+        .dot.healthy { background: var(--teal); }
+        .hist-time { color: var(--text2); font-variant-numeric: tabular-nums; }
+        .hist-risk { text-align: right; }
+        .mini-chip {
+            display: inline-block; padding: 3px 10px; border-radius: 999px;
+            font-size: 0.72rem; font-weight: 600;
+        }
+        .mini-chip.HIGH   { background: var(--red-dim);    color: var(--red); }
+        .mini-chip.MEDIUM { background: var(--yellow-dim); color: var(--yellow); }
+        .mini-chip.LOW    { background: var(--teal-dim);   color: var(--teal); }
+
+        .hist-empty { padding: 48px 24px; text-align: center; color: var(--text3); }
+        .hist-empty p { font-size: 0.95rem; margin-bottom: 14px; }
+        .hist-empty a {
+            display: inline-block; background: var(--teal); color: #fff;
+            text-decoration: none; font-weight: 600; font-size: 0.9rem;
+            padding: 10px 20px; border-radius: 999px;
+            box-shadow: 0 4px 12px rgba(22,163,74,0.3);
         }
 
-        /* History */
-        .history-section h3 {
-            font-size: 0.85rem;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: var(--text2);
-            font-weight: 600;
-            margin-bottom: 12px;
-        }
-        .history-list {
-            background: var(--bg-white);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: var(--shadow-sm);
-        }
-        .history-row {
-            display: grid;
-            grid-template-columns: 1fr 1.2fr 0.9fr 0.6fr;
-            gap: 14px;
-            padding: 14px 20px;
-            border-bottom: 1px solid var(--border);
-            font-size: 0.9rem;
-            align-items: center;
-        }
-        .history-row:last-child { border-bottom: none; }
-        .history-row.head {
-            font-size: 0.72rem;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            color: var(--text3);
-            background: rgba(0,0,0,0.015);
-            font-weight: 600;
-        }
-        .history-class {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-        }
-        .dot.covid       { background: #ef4444; }
-        .dot.symptomatic { background: #eab308; }
-        .dot.healthy     { background: #22c55e; }
-        .history-empty {
-            padding: 40px;
-            text-align: center;
-            color: var(--text3);
-            font-size: 0.9rem;
-        }
-
-        @media (max-width: 600px) {
-            .history-row {
-                grid-template-columns: 1fr 1fr;
-                gap: 8px;
-            }
-            .history-row .col-device,
-            .history-row .col-risk { display: none; }
-        }
-
-        /* ── Nav links (missing from homepage.css) ── */
-        .nav-links {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-        .nav-link {
-            font-size: 0.85rem;
-            font-weight: 500;
-            color: var(--text2);
-            text-decoration: none;
-            padding: 6px 12px;
-            border-radius: 20px;
-            transition: background 0.18s, color 0.18s;
-            white-space: nowrap;
-        }
-        .nav-link:hover {
-            background: rgba(0,0,0,0.05);
-            color: var(--text1);
-        }
-        .nav-link.active {
-            background: rgba(22,163,74,0.10);
-            color: var(--green);
-        }
-        .nav-link-dashboard {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .nav-dash-dot {
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-            background: #22c55e;
-            flex-shrink: 0;
-            box-shadow: 0 0 0 3px rgba(34,197,94,0.2);
-            animation: navDotPulse 2s infinite;
-        }
-        @keyframes navDotPulse {
-            0%, 100% { box-shadow: 0 0 0 3px rgba(34,197,94,0.2); }
-            50%      { box-shadow: 0 0 0 6px rgba(34,197,94,0.05); }
-        }
-
-        /* ── Layout fixes ── */
-        .dash-wrap {
-            padding-top: 32px;
-        }
-        .stat-grid {
-            grid-template-columns: repeat(4, 1fr);
-        }
-        @media (max-width: 860px) {
-            .stat-grid { grid-template-columns: repeat(2, 1fr); }
-            .nav-links { display: none; }   /* hide on mobile — logo only */
-        }
-        @media (max-width: 480px) {
-            .dash-title { font-size: 1.6rem; }
-            .stat-grid { grid-template-columns: repeat(2, 1fr); }
-            .device-status { font-size: 0.78rem; padding: 8px 12px; }
-        }
-        .latest-class {
-            font-size: 2rem;
-            word-break: break-word;
+        @media (max-width: 560px) {
+            .dash-title { font-size: 1.9rem; }
+            .hist-row { grid-template-columns: 1fr auto; }
+            .hist-row .hist-time { grid-column: 1 / -1; order: 3; font-size: 0.8rem; color: var(--text3); }
         }
     </style>
 </head>
 <body>
 
 <!-- NAV -->
-<nav class="nav scrolled" id="nav">
-    <div class="nav-inner">
-        <a href="/" class="nav-logo">
-            <div class="nav-logo-icon">
-                <svg width="16" height="10" viewBox="0 0 36 20" fill="none">
-                    <path d="M0 10 H6 L9 2 L12 18 L15 6 L18 14 L21 10 H36"
-                          stroke="white" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-            </div>
-            <span>CoughAI</span>
-        </a>
-        <nav class="nav-links">
-            <a href="/" class="nav-link">Home</a>
-            <a href="/app" class="nav-link">App</a>
-            <a href="/dashboard" class="nav-link active nav-link-dashboard">
-                <span class="nav-dash-dot" id="nav-dash-dot"></span>
-                Dashboard
-            </a>
-        </nav>
-        <a href="/app" class="nav-cta">Open App →</a>
+<nav class="app-nav">
+    <a href="/" class="app-nav-logo">
+        <div class="app-nav-icon">
+            <svg width="14" height="9" viewBox="0 0 36 20" fill="none">
+                <path d="M0 10 H6 L9 2 L12 18 L15 6 L18 14 L21 10 H36"
+                      stroke="white" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+        <span>CoughAI</span>
+    </a>
+    <div class="app-nav-links">
+        <a href="/" class="app-nav-link">Home</a>
+        <a href="/app" class="app-nav-link">App</a>
+        <a href="/dashboard" class="app-nav-link active">Dashboard</a>
     </div>
 </nav>
 
@@ -348,59 +235,62 @@
 
     <div class="dash-head">
         <div>
-            <h1 class="dash-title">Edge Device Dashboard</h1>
-            <p class="dash-sub">Real-time results from CoughAI Telemedicine Edge devices</p>
+            <p class="dash-eyebrow">ประวัติการตรวจ</p>
+            <h1 class="dash-title">แดชบอร์ดผลวิเคราะห์</h1>
+            <p class="dash-sub">ผลการวิเคราะห์เสียงไอทั้งหมดที่อัด/อัปโหลดผ่านเว็บ</p>
         </div>
-        <div class="device-status">
-            <span class="status-dot" id="status-dot"></span>
-            <span id="status-text">Connecting…</span>
+        <div class="dash-actions">
+            <span class="live-badge"><span class="live-dot" id="live-dot"></span><span id="live-text">กำลังเชื่อมต่อ…</span></span>
+            <button class="refresh-btn" id="refresh-btn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                </svg>
+                รีเฟรช
+            </button>
         </div>
     </div>
 
     <!-- Stats -->
     <div class="stat-grid">
         <div class="stat-card">
-            <div class="stat-label">Total screenings</div>
+            <div class="stat-label">ตรวจทั้งหมด</div>
             <div class="stat-value" id="stat-total">—</div>
         </div>
         <div class="stat-card">
-            <div class="stat-label">High risk</div>
+            <div class="stat-label">เสี่ยงสูง</div>
             <div class="stat-value danger" id="stat-high">—</div>
         </div>
         <div class="stat-card">
-            <div class="stat-label">Medium</div>
+            <div class="stat-label">เฝ้าระวัง</div>
             <div class="stat-value warn" id="stat-med">—</div>
         </div>
         <div class="stat-card">
-            <div class="stat-label">Low</div>
+            <div class="stat-label">ปกติ</div>
             <div class="stat-value ok" id="stat-low">—</div>
         </div>
     </div>
 
-    <!-- Latest result -->
-    <div class="latest-card" id="latest-card" style="display:none">
+    <!-- Latest -->
+    <div class="latest-card" id="latest-card">
         <div class="latest-head">
-            <span class="latest-title">Latest screening</span>
+            <span class="latest-title">ผลล่าสุด</span>
             <span class="latest-time" id="latest-time">—</span>
         </div>
         <div class="latest-body">
             <div>
                 <div class="latest-class" id="latest-class">—</div>
                 <div class="latest-conf" id="latest-conf">—</div>
-                <span class="latest-risk-chip LOW" id="latest-risk">LOW RISK</span>
-                <p class="latest-conf" style="margin-top:14px;font-size:0.82rem;color:var(--text3)">
-                    Device: <span id="latest-device">—</span>
-                </p>
+                <span class="risk-chip LOW" id="latest-risk">ปกติ</span>
             </div>
             <div class="prob-list" id="latest-probs"></div>
         </div>
     </div>
 
     <!-- History -->
-    <div class="history-section">
-        <h3>History</h3>
-        <div class="history-list" id="history-list">
-            <div class="history-empty">No screenings yet — waiting for edge device…</div>
+    <div>
+        <h3 class="hist-title">ประวัติทั้งหมด</h3>
+        <div class="hist-list" id="hist-list">
+            <div class="hist-empty"><p>กำลังโหลด…</p></div>
         </div>
     </div>
 </div>
