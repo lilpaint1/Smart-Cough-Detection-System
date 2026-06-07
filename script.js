@@ -44,18 +44,27 @@ const customCallBtn   = document.getElementById('custom-call-btn');
 
 let mediaRecorder, audioChunks = [], audioContext, analyserNode, animationFrameId;
 
-// คำแนะนำ fallback (เผื่อ backend ไม่ส่ง recommendation มา)
-const RECO_FALLBACK = {
-    healthy:     'เสียงไออยู่ในเกณฑ์ปกติ ดูแลสุขภาพ พักผ่อนให้เพียงพอ ดื่มน้ำมาก ๆ',
-    symptomatic: 'พบลักษณะการไอที่ควรเฝ้าระวัง พักผ่อน ดื่มน้ำอุ่น และพบแพทย์หากอาการไม่ดีขึ้นใน 2-3 วัน',
-    covid:       'พบลักษณะการไอที่อาจสัมพันธ์กับโควิด-19 แนะนำตรวจ ATK แยกกักตัว และติดต่อสายด่วน 1422',
-};
+// ── i18n helpers ──────────────────────────────────────────
+const T = (k) => (window.t ? window.t(k) : k);
+let lastResult = null;   // เก็บผลล่าสุดไว้ render ใหม่ตอนสลับภาษา
+
+function renderDate() {
+    const el = document.getElementById('app-date');
+    if (!el) return;
+    const lang = window.CoughLang ? window.CoughLang.get() : 'th';
+    const loc  = lang === 'en' ? 'en-US' : 'th-TH';
+    el.textContent = new Date().toLocaleDateString(loc, { weekday:'long', day:'numeric', month:'long' });
+}
+
+// render ส่วน dynamic ใหม่เมื่อผู้ใช้สลับภาษา
+document.addEventListener('coughai:langchange', () => {
+    renderDate();
+    if (lastResult && resultCard.style.display !== 'none') displayResult(lastResult);
+});
 
 // ── Splash → App ──────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
-    const d = new Date();
-    const el = document.getElementById('app-date');
-    if (el) el.textContent = d.toLocaleDateString('th-TH', { weekday:'long', day:'numeric', month:'long' });
+    renderDate();
 
     setTimeout(() => {
         const splash = document.getElementById('splash');
@@ -104,23 +113,23 @@ async function startRecording() {
         };
 
         mediaRecorder.start();
-        recordText.textContent = 'กำลังบันทึก...';
+        recordText.textContent = T('app.recording');
         recordButton.classList.add('recording');
-        if (waveformLabel) waveformLabel.textContent = 'กำลังรับเสียง...';
+        if (waveformLabel) waveformLabel.textContent = T('app.wave.recording');
         uploadInput.disabled = true;
         visualizeAudio();
 
         setTimeout(() => { if (mediaRecorder.state === 'recording') mediaRecorder.stop(); }, DURATION * 1000);
     } catch (err) {
-        showModal('ข้อผิดพลาด', `ไม่สามารถเข้าถึงไมโครโฟนได้: ${err.message}`);
+        showModal(T('app.error.title'), `${T('app.error.mic')}${err.message}`);
     }
 }
 
 function stopRecording() {
     if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
-    recordText.textContent = 'เริ่มบันทึก';
+    recordText.textContent = T('app.record.start');
     recordButton.classList.remove('recording');
-    if (waveformLabel) waveformLabel.textContent = 'รอสัญญาณเสียง';
+    if (waveformLabel) waveformLabel.textContent = T('app.wave.idle');
     audioBar.style.width = '0%';
     uploadInput.disabled = false;
 }
@@ -155,7 +164,7 @@ if (dropZone) {
             fileNameSpan.textContent = file.name;
             convertFileToWav(file).then(wav => processAudio(wav));
         } else {
-            showModal('ไฟล์ไม่ถูกต้อง', 'กรุณาเลือกไฟล์เสียงเท่านั้น');
+            showModal(T('app.error.filetype.title'), T('app.error.filetype.msg'));
         }
     });
 }
@@ -198,7 +207,7 @@ async function processAudio(audioBlob) {
     resultSection.style.display = 'block';
     resultLoading.style.display = 'flex';
     resultCard.style.display    = 'none';
-    statusMessage.textContent   = 'กำลังวิเคราะห์เสียง...';
+    statusMessage.textContent   = T('app.status.analyzing');
 
     try {
         const fd = new FormData();
@@ -219,6 +228,7 @@ async function processAudio(audioBlob) {
 function displayResult(data) {
     resultLoading.style.display = 'none';
     resultCard.style.display    = 'flex';
+    lastResult = data;
 
     const cls   = data.classification.toLowerCase();
     const probs = data.probabilities;
@@ -231,19 +241,21 @@ function displayResult(data) {
     };
     const m = map[cls] || { text: cls.toUpperCase(), color:'var(--text2)', bg:'rgba(255,255,255,0.08)', icon:'<circle cx="12" cy="12" r="10"/>' };
 
-    predictionLabel.textContent  = m.text;
+    predictionLabel.textContent  = map[cls] ? T('label.' + cls) : m.text;
     predictionLabel.style.color  = m.color;
     resultBadge.style.background = m.bg;
     badgeIcon.innerHTML          = m.icon;
     badgeIcon.style.stroke       = m.color;
-    confidenceScore.textContent  = `ความมั่นใจ ${(top*100).toFixed(1)}%`;
+    confidenceScore.textContent  = `${T('app.confidence')} ${(top*100).toFixed(1)}%`;
 
     // probability bars
     probContainer.innerHTML = '';
     const colorMap = { healthy:'healthy', covid:'covid', symptomatic:'symptomatic' };
     probs.forEach(p => {
         const row  = document.createElement('div'); row.className = 'prob-row';
-        const name = document.createElement('span'); name.className = 'prob-name'; name.textContent = p.label;
+        const name = document.createElement('span'); name.className = 'prob-name';
+        const pk = p.label.toLowerCase();
+        name.textContent = ['healthy','covid','symptomatic'].includes(pk) ? T('label.' + pk) : p.label;
         const trk  = document.createElement('div'); trk.className = 'prob-track';
         const fill = document.createElement('div');
         const cls2 = colorMap[p.label.toLowerCase()] || 'default';
@@ -256,50 +268,60 @@ function displayResult(data) {
         requestAnimationFrame(() => requestAnimationFrame(() => { fill.style.width = `${p.score*100}%`; }));
     });
 
-    // ── คำแนะนำ (ของใหม่) ──
+    // ── คำแนะนำ ──
+    // backend ส่ง recommendation มาเป็นภาษาไทย → ใช้เมื่ออยู่โหมดไทย
+    // โหมดอังกฤษหรือไม่มีข้อมูล → ใช้คำแนะนำจาก dictionary
     if (recoText) {
-        recoText.textContent = data.recommendation || RECO_FALLBACK[cls] || '—';
+        const lang = window.CoughLang ? window.CoughLang.get() : 'th';
+        const fallback = ['healthy','covid','symptomatic'].includes(cls) ? T('reco.' + cls) : '—';
+        recoText.textContent = (lang === 'th' && data.recommendation) ? data.recommendation : fallback;
     }
 }
 
 function displayError() {
     resultLoading.style.display = 'none';
     resultCard.style.display    = 'flex';
-    predictionLabel.textContent  = 'วิเคราะห์ไม่สำเร็จ';
+    lastResult = null;
+    predictionLabel.textContent  = T('app.fail.label');
     predictionLabel.style.color  = 'var(--text2)';
     resultBadge.style.background = 'rgba(255,255,255,0.06)';
     badgeIcon.innerHTML          = '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>';
     badgeIcon.style.stroke       = 'var(--text2)';
-    confidenceScore.textContent  = 'กรุณาลองใหม่อีกครั้ง';
+    confidenceScore.textContent  = T('app.fail.retry');
     probContainer.innerHTML      = '';
-    if (recoText) recoText.textContent = 'ไม่สามารถประมวลผลได้ กรุณาลองอัดเสียงใหม่อีกครั้ง';
+    if (recoText) recoText.textContent = T('app.fail.reco');
 }
 
 // ── รพ. ใกล้ฉัน (geolocation → Google Maps) ───────────────
 hospitalBtn?.addEventListener('click', () => {
-    const openMaps = (lat, lng) => {
-        const url = (lat != null)
-            ? `https://www.google.com/maps/search/โรงพยาบาล/@${lat},${lng},14z`
-            : `https://www.google.com/maps/search/โรงพยาบาลใกล้ฉัน`;
-        window.open(url, '_blank');
+    const buildUrl = (lat, lng) =>
+        (lat != null)
+            ? `https://www.google.com/maps/search/${encodeURIComponent(T('maps.hospital'))}/@${lat},${lng},14z`
+            : `https://www.google.com/maps/search/${encodeURIComponent(T('maps.hospitalNear'))}`;
+
+    // เปิดแท็บทันทีระหว่าง user gesture เพื่อกัน popup ถูกบล็อกบนมือถือ
+    const mapWin = window.open('', '_blank');
+
+    const go = (lat, lng) => {
+        const url = buildUrl(lat, lng);
+        if (mapWin && !mapWin.closed) {
+            mapWin.location.href = url;          // เปลี่ยน URL ของแท็บที่เปิดค้างไว้
+        } else {
+            window.location.href = url;          // เผื่อ popup ถูกบล็อก → เปิดในแท็บเดิม
+        }
     };
-    if (!navigator.geolocation) { openMaps(null, null); return; }
+
+    if (!navigator.geolocation) { go(null, null); return; }
 
     hospitalBtn.disabled = true;
     const orig = hospitalBtn.innerHTML;
-    hospitalBtn.textContent = 'กำลังหาตำแหน่ง...';
+    hospitalBtn.textContent = T('app.locating');
+    const restore = () => { hospitalBtn.disabled = false; hospitalBtn.innerHTML = orig; };
 
     navigator.geolocation.getCurrentPosition(
-        pos => {
-            openMaps(pos.coords.latitude, pos.coords.longitude);
-            hospitalBtn.disabled = false; hospitalBtn.innerHTML = orig;
-        },
-        () => {
-            // ปฏิเสธ/ล้มเหลว → เปิดแบบค้นหาทั่วไป
-            openMaps(null, null);
-            hospitalBtn.disabled = false; hospitalBtn.innerHTML = orig;
-        },
-        { enableHighAccuracy: true, timeout: 8000 }
+        pos => { go(pos.coords.latitude, pos.coords.longitude); restore(); },
+        ()  => { go(null, null); restore(); },   // ปฏิเสธ/ล้มเหลว → ค้นหาทั่วไป
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
     );
 });
 
@@ -309,7 +331,7 @@ callCancel?.addEventListener('click', () => { callModal.style.display = 'none'; 
 callModal?.addEventListener('click', e => { if (e.target === callModal) callModal.style.display = 'none'; });
 customCallBtn?.addEventListener('click', () => {
     const num = (customTel.value || '').replace(/[^0-9+]/g, '');
-    if (!num) { showModal('ยังไม่มีเบอร์', 'กรุณากรอกเบอร์โทรก่อน'); return; }
+    if (!num) { showModal(T('app.error.nonum.title'), T('app.error.nonum.msg')); return; }
     window.location.href = `tel:${num}`;
 });
 
@@ -320,9 +342,9 @@ resetButton.addEventListener('click', () => {
     resultCard.style.display    = 'none';
     fileNameSpan.textContent    = '';
     audioBar.style.width        = '0%';
-    if (waveformLabel) waveformLabel.textContent = 'รอสัญญาณเสียง';
+    if (waveformLabel) waveformLabel.textContent = T('app.wave.idle');
     uploadInput.value           = '';
     recordButton.disabled       = false;
     recordButton.classList.remove('recording');
-    recordText.textContent      = 'เริ่มบันทึก';
+    recordText.textContent      = T('app.record.start');
 });

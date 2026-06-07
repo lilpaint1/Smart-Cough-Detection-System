@@ -6,17 +6,18 @@
 const POLL_INTERVAL = 4000;
 const HISTORY_URL   = "/history";
 
-// ── label → ไทย + สี ──────────────────────────────────────
-const TH = {
-    covid:       { name: "โควิด-19",  cls: "covid" },
-    healthy:     { name: "สุขภาพดี",  cls: "healthy" },
-    symptomatic: { name: "มีอาการ",   cls: "symptomatic" },
-};
-const RISK_TH = { HIGH: "เสี่ยงสูง", MEDIUM: "เฝ้าระวัง", LOW: "ปกติ" };
+// ── i18n helper ───────────────────────────────────────────
+const T = (k) => (window.t ? window.t(k) : k);
+const CLS = { covid: "covid", healthy: "healthy", symptomatic: "symptomatic" };
 
+// label → ชื่อ (ตามภาษาปัจจุบัน) + คลาสสี
 function thClass(label) {
     const key = (label || "").toLowerCase();
-    return TH[key] || { name: (label || "—"), cls: "" };
+    if (CLS[key]) return { name: T("label." + key), cls: CLS[key] };
+    return { name: (label || "—"), cls: "" };
+}
+function riskText(risk) {
+    return T("risk." + risk) || T("risk.LOW");
 }
 
 // ── elements ──────────────────────────────────────────────
@@ -37,18 +38,20 @@ const histList   = $("hist-list");
 const refreshBtn = $("refresh-btn");
 
 let lastTimestamp = null;
+let lastItems = [];   // เก็บข้อมูลล่าสุดไว้ render ใหม่ตอนสลับภาษา
 
-// ── เวลาแบบไทย ────────────────────────────────────────────
+// ── เวลาแบบสัมพัทธ์ (ตามภาษา) ─────────────────────────────
 function fmtTime(iso) {
     if (!iso) return "—";
     try {
         const d = new Date(iso);
         const diff = (Date.now() - d.getTime()) / 1000;
-        if (diff < 10)    return "เมื่อสักครู่";
-        if (diff < 60)    return `${Math.floor(diff)} วินาทีที่แล้ว`;
-        if (diff < 3600)  return `${Math.floor(diff / 60)} นาทีที่แล้ว`;
-        if (diff < 86400) return `${Math.floor(diff / 3600)} ชั่วโมงที่แล้ว`;
-        return d.toLocaleString("th-TH", {
+        const lang = window.CoughLang ? window.CoughLang.get() : "th";
+        if (diff < 10)    return T("time.justnow");
+        if (diff < 60)    return `${Math.floor(diff)} ${T("time.sec")}`;
+        if (diff < 3600)  return `${Math.floor(diff / 60)} ${T("time.min")}`;
+        if (diff < 86400) return `${Math.floor(diff / 3600)} ${T("time.hour")}`;
+        return d.toLocaleString(lang === "en" ? "en-US" : "th-TH", {
             day: "numeric", month: "short",
             hour: "2-digit", minute: "2-digit",
         });
@@ -58,10 +61,10 @@ function fmtTime(iso) {
 function setLive(ok) {
     if (ok) {
         liveDot.classList.add("on");
-        liveText.textContent = "เชื่อมต่อแล้ว";
+        liveText.textContent = T("dash.live.on");
     } else {
         liveDot.classList.remove("on");
-        liveText.textContent = "เชื่อมต่อไม่ได้";
+        liveText.textContent = T("dash.live.off");
     }
 }
 
@@ -75,12 +78,12 @@ function renderLatest(item) {
     latestClass.textContent = t.name;
 
     const conf = (typeof item.confidence === "number") ? item.confidence.toFixed(1) : "?";
-    latestConf.textContent = `ความมั่นใจ ${conf}%`;
+    latestConf.textContent = `${T("app.confidence")} ${conf}%`;
     latestTime.textContent = fmtTime(item.timestamp);
 
     const risk = (item.risk_level || "LOW").toUpperCase();
     latestRisk.className = `risk-chip ${risk}`;
-    latestRisk.textContent = RISK_TH[risk] || "ปกติ";
+    latestRisk.textContent = riskText(risk);
 
     // probability bars (เรียงมาก→น้อย)
     latestProbs.innerHTML = "";
@@ -122,17 +125,17 @@ function renderHistory(items) {
     if (!items.length) {
         histList.innerHTML = `
             <div class="hist-empty">
-                <p>ยังไม่มีประวัติ — ลองอัดหรืออัปโหลดเสียงไอที่หน้า App</p>
-                <a href="/app">ไปหน้า App →</a>
+                <p>${T("dash.empty")}</p>
+                <a href="/app">${T("dash.empty.cta")}</a>
             </div>`;
         return;
     }
 
     const rows = [`
         <div class="hist-row head">
-            <div>เวลา</div>
-            <div>ผลวิเคราะห์</div>
-            <div class="hist-risk">ระดับ</div>
+            <div>${T("dash.hist.time")}</div>
+            <div>${T("dash.hist.result")}</div>
+            <div class="hist-risk">${T("dash.hist.level")}</div>
         </div>`];
 
     for (const it of items) {
@@ -145,7 +148,7 @@ function renderHistory(items) {
                 <div class="hist-class">
                     <span class="dot ${t.cls}"></span>${t.name} · ${conf}%
                 </div>
-                <div class="hist-risk"><span class="mini-chip ${risk}">${RISK_TH[risk] || "ปกติ"}</span></div>
+                <div class="hist-risk"><span class="mini-chip ${risk}">${riskText(risk)}</span></div>
             </div>`);
     }
     histList.innerHTML = rows.join("");
@@ -158,6 +161,7 @@ async function poll() {
         if (!res.ok) throw new Error(res.status);
         const data = await res.json();
         const items = data.items || [];
+        lastItems = items;
 
         setLive(true);
         renderStats(items);
@@ -181,6 +185,15 @@ async function poll() {
 refreshBtn.addEventListener("click", () => {
     refreshBtn.classList.add("spin");
     poll().finally(() => setTimeout(() => refreshBtn.classList.remove("spin"), 600));
+});
+
+// สลับภาษา → render ส่วน dynamic ใหม่ทันทีจากข้อมูลที่มีอยู่
+document.addEventListener("coughai:langchange", () => {
+    renderStats(lastItems);
+    renderHistory(lastItems);
+    const top = lastItems[0];
+    if (top) renderLatest(top);
+    else latestCard.style.display = "none";
 });
 
 poll();
