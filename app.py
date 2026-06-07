@@ -206,6 +206,30 @@ def prepare_cnn_input(wav_path: str):
     return feat[np.newaxis, ...].astype(np.float32)
 
 
+TRIM_TOP_DB = 30   # ตรงกับ preprocessing.py
+
+def preprocess_wav(path: str) -> None:
+    """
+    trim ความเงียบหัว-ท้าย + peak-normalize ให้ตรงกับ preprocessing.py
+    (กัน train/serve mismatch — ตอนเทรนไฟล์ผ่าน trim มาแล้ว)
+    เขียนทับไฟล์เดิม ถ้าพังก็ปล่อยไฟล์เดิมไว้ (ไม่ทำให้ /predict ล้ม)
+    """
+    try:
+        import librosa
+        y, sr = librosa.load(path, sr=None, mono=True)
+        if y is None or len(y) == 0:
+            return
+        y_trim, _ = librosa.effects.trim(y, top_db=TRIM_TOP_DB)
+        if len(y_trim) > 0:
+            y = y_trim
+        peak = float(np.max(np.abs(y)))
+        if peak > 0:
+            y = y / peak
+        sf.write(path, y, sr)
+    except Exception as e:
+        print(f"⚠️  preprocess_wav ข้าม ({e}) → ใช้ไฟล์เดิม")
+
+
 def predict_ensemble(wav_path: str) -> dict:
     """Soft-voting ensemble (CNN + XGB) — fallback เป็น XGB ถ้า CNN ไม่พร้อม"""
     feat_rf, err = extract_features(wav_path)
@@ -296,6 +320,7 @@ def predict():
         audio_data, sr = sf.read(io.BytesIO(audio_file.read()))
         sf.write(filepath, audio_data, sr, format="WAV")
 
+        preprocess_wav(filepath)          # trim+normalize ให้ตรงกับตอนเทรน
         result = predict_ensemble(filepath)
 
         # ── บันทึกลงประวัติ (เว็บไอ → Dashboard) ──
