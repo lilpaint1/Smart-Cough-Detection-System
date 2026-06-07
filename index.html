@@ -55,6 +55,47 @@
             font-family: inherit; font-size: 0.95rem; outline: none;
         }
         .custom-call-row input:focus { border-color: var(--teal, #2dd4bf); }
+    
+        /* ── Top Nav (เพิ่มใหม่: ก่อนหน้านี้ไม่มีสไตล์ทำให้ nav โล้น) ── */
+        .app-nav {
+            position: sticky; top: 0; z-index: 50;
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 16px; padding: 12px 20px;
+            background: rgba(255,255,255,0.82);
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+            border-bottom: 1px solid var(--sep, rgba(0,0,0,0.08));
+        }
+        .app-nav-logo {
+            display: inline-flex; align-items: center; gap: 9px;
+            text-decoration: none; color: var(--text1, #0a0a0b);
+            font-weight: 600; font-size: 1.02rem; letter-spacing: -0.01em;
+        }
+        .app-nav-icon {
+            width: 28px; height: 28px; border-radius: 8px;
+            background: var(--teal, #16a34a);
+            display: inline-flex; align-items: center; justify-content: center;
+            box-shadow: 0 2px 6px rgba(22,163,74,0.35);
+        }
+        .app-nav-links { display: flex; align-items: center; gap: 4px; }
+        .app-nav-link {
+            text-decoration: none; color: var(--text2, rgba(0,0,0,0.5));
+            font-size: 0.9rem; font-weight: 500;
+            padding: 7px 14px; border-radius: 999px;
+            display: inline-flex; align-items: center; gap: 6px;
+            transition: background 0.18s, color 0.18s;
+        }
+        .app-nav-link:hover { color: var(--text1, #0a0a0b); background: rgba(0,0,0,0.04); }
+        .app-nav-link.active { color: var(--teal, #16a34a); background: var(--teal-dim, rgba(22,163,74,0.10)); }
+        .app-nav-dot {
+            width: 7px; height: 7px; border-radius: 50%;
+            background: var(--teal, #16a34a);
+            box-shadow: 0 0 0 3px rgba(22,163,74,0.18);
+        }
+        @media (max-width: 480px) {
+            .app-nav { padding: 10px 14px; }
+            .app-nav-link { padding: 6px 11px; font-size: 0.84rem; }
+        }
     </style>
 </head>
 <body>
