@@ -1,0 +1,52 @@
+# ── virtualenvs / caches (ห้ามขึ้น repo) ──
+venv_gpu/
+DATASET/
+__pycache__/
+*.pyc
+python
+
+# ── โมเดล / data ขนาดใหญ่ (โหลดผ่าน Google Drive ตอน deploy) ──
+*.pkl
+*.h5
+*.keras
+*.weights.h5
+*.npz
+*.npy
+*.tflite
+
+# ── ชุดเสียง / ฟีเจอร์ ──
+covid/
+healthy/
+symptomatic/
+verify_sound/
+sorted_audio/
+uploads/
+icbhi_cycles/
+cnn_features/
+cnn_features_v2/
+cnn_features_new/
+features/
+feat_cache_v*/
+debug_plots_v*/
+runs/
+models/
+models_v2/
+cnn_model/
+"Realease+Matrx+ROC 93%/"
+*.wav
+*.webm
+*.ogg
+*.mp3
+
+# ── logs / ไฟล์ใหญ่อื่น ๆ ──
+*_run.log
+manifest_mel.csv
+metadata_compiled.csv
+*.jsonl
+mic_input.wav
+
+# ── รูปผลลัพธ์ (regenerate ได้จากสคริปต์) ──
+*.png
+
+# ── เก็บไฟล์เล็กที่จำเป็นไว้ (override) ──
+!cough_min_max.json
